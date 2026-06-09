@@ -26,7 +26,7 @@ async function withRetry(fn, n = 2) {
 // last-good baseline: prefer the live deployed file, fall back to bundled seed
 async function loadPrev() {
   if (PREV_URL) { try { const r = await fetch(PREV_URL + "?t=" + Date.now()); if (r.ok) return await r.json(); } catch {} }
-  try { if (existsSync("public/data.json")) return JSON.parse(readFileSync("public/data.json", "utf8")); } catch {}
+  try { if (existsSync("data.json")) return JSON.parse(readFileSync("data.json", "utf8")); } catch {}
   return {};
 }
 
