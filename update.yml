@@ -1,0 +1,43 @@
+name: Update Trade Desk
+
+on:
+  schedule:
+    - cron: "0 */3 * * *"   # 3時間ごと (UTC)
+  workflow_dispatch: {}      # 手動実行ボタン
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Fetch market data (resilient, keeps last-good)
+        env:
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # 前回の公開データを基準に、失敗したソースだけ前回値を維持する
+          PREV_DATA_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/data.json
+        run: node fetch-data.js
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - id: deploy
+        uses: actions/deploy-pages@v4

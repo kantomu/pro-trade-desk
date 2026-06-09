@@ -1,0 +1,14 @@
+{
+  "name": "Trade Desk",
+  "short_name": "TradeDesk",
+  "description": "FX/Gold trade support desk",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#080a0e",
+  "theme_color": "#080a0e",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
