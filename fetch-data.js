@@ -2,7 +2,7 @@
 // RESILIENCE: starts from last-good data and only overwrites a section when its
 // fetch succeeds. One failing source never blanks the app. Per-source freshness recorded.
 
-import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
+import { writeFileSync, readFileSync, existsSync } from "node:fs";
 
 const FMP = process.env.FMP_API_KEY;
 const ANTHROPIC = process.env.ANTHROPIC_API_KEY;
