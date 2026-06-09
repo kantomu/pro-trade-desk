@@ -144,6 +144,5 @@ if (a) { out.analysis = a; out.freshness.analysis = now; }
 else if (out.analysis) errors.push("analysis: 前回値を維持");
 
 out.errors = errors;
-mkdirSync("public", { recursive: true });
-writeFileSync("public/data.json", JSON.stringify(out, null, 2));
-console.log("Wrote public/data.json", { errors });
+writeFileSync("data.json", JSON.stringify(out, null, 2));
+console.log("Wrote data.json", { errors });
