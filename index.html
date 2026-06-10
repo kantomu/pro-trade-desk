@@ -3,440 +3,976 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#080a0e" />
+<meta name="theme-color" content="#0b0d08" />
 <link rel="manifest" href="./manifest.webmanifest" />
-<link rel="apple-touch-icon" href="./icon.svg" />
-<title>Trade Desk</title>
+<link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+<title>Macro Mixer</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@700;900&display=swap');
-:root{ --bg:#080a0e;--panel:#14161d;--panel2:#1a1d26;--border:#272b35;--border2:#343a46;--text:#e9ebf0;--muted:#888fa0;--gold:#e3b341;--up:#5fd08a;--down:#ff6f6f;--mid:#9aa0ac; }
-[data-theme="light"]{ --bg:#f3f2ec;--panel:#fff;--panel2:#f8f7f1;--border:#e4e2d8;--border2:#d4d1c4;--text:#1b1c1e;--muted:#6a6d75;--gold:#b8862a; }
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans-serif;min-height:100vh;position:relative;overflow-x:hidden}
-body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(40% 30% at 12% 0%,color-mix(in srgb,var(--gold) 16%,transparent),transparent 70%),radial-gradient(45% 35% at 90% 8%,rgba(78,201,176,.13),transparent 70%),radial-gradient(50% 40% at 50% 100%,rgba(106,160,255,.10),transparent 70%)}
-.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:0 15px calc(48px + env(safe-area-inset-bottom))}
-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:calc(12px + env(safe-area-inset-top)) 0 12px;margin-bottom:10px;position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
-.brand{display:flex;align-items:center;gap:10px}
-.diamond{color:var(--gold);font-size:17px;filter:drop-shadow(0 0 10px color-mix(in srgb,var(--gold) 70%,transparent));animation:spin 14s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.bname{font-family:'JetBrains Mono',monospace;font-weight:700;letter-spacing:1.6px;font-size:14px}.bname span{color:var(--gold)}
-.bsub{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:1px;color:var(--muted)}
-.hr{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace}
-.live{display:flex;align-items:center;gap:5px;font-size:11px}
-.pulse{width:7px;height:7px;border-radius:50%;background:var(--up);animation:pulse 1.8s infinite}
-@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--up) 60%,transparent)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
-.tbtn{background:transparent;border:1px solid var(--border);color:var(--muted);width:30px;height:30px;border-radius:9px;cursor:pointer;font-size:13px}
-.pulse-row{display:flex;gap:8px;overflow-x:auto;padding:2px 0 12px;scrollbar-width:none}.pulse-row::-webkit-scrollbar{display:none}
-.tk{flex:none;background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:7px 11px;min-width:94px}
-.tk .k{font-family:'JetBrains Mono',monospace;font-size:8.5px;color:var(--muted)}
-.tk .p{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700}
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@700;900&display=swap');
+
+/* ============ tokens — Bullion Terminal (from the MM emblem) ============ */
+:root{
+  --ink:#0b0d08; --felt:#12150d; --moss:#181d11; --seam:#2b3320; --seam2:#3c4628;
+  --text:#ece9da; --mut:#9aa18a; --mut2:#6f765f;
+  --gold:#d9a93c; --brass:#f1d491; --goldline:rgba(217,169,60,.32);
+  --long:#6fd6a0; --short:#ff8484; --flat:#9aa18a;
+  --c-eu:#8fb7ff; --c-uj:#5ecfb4; --c-gu:#e899ab; --c-xa:#d9a93c; --c-uc:#e0aa6d; --c-au:#6fd0c4; --c-ej:#c9a0ef; --c-gj:#de96d6;
+  --r:16px; --r2:12px;
+  --shadow:0 18px 40px -22px rgba(0,0,0,.85);
+}
+[data-theme="light"]{
+  --ink:#efeadb; --felt:#f9f6ec; --moss:#f1ecdd; --seam:#dcd4ba; --seam2:#c8bfa0;
+  --text:#211f15; --mut:#6e6c58; --mut2:#94917b;
+  --gold:#a87b1f; --brass:#8a6516; --goldline:rgba(168,123,31,.4);
+  --long:#1f9d65; --short:#cf4a4a; --flat:#7a785f;
+  --shadow:0 14px 30px -20px rgba(70,60,20,.35);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{
+  background:var(--ink); color:var(--text);
+  font-family:'Noto Sans JP',sans-serif; font-size:13px; line-height:1.7;
+  min-height:100dvh; overflow-x:hidden;
+}
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(60% 38% at 50% -6%, rgba(217,169,60,.12), transparent 70%),
+    radial-gradient(45% 30% at 100% 14%, rgba(110,214,160,.05), transparent 70%),
+    radial-gradient(55% 40% at 0% 100%, rgba(143,183,255,.05), transparent 70%);
+}
+.mono{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
+.disp{font-family:'Zen Kaku Gothic New',sans-serif;font-weight:900}
+.up{color:var(--long)} .down{color:var(--short)} .mid{color:var(--flat)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px;border-radius:6px}
+::-webkit-scrollbar{height:0;width:0}
+
+/* ============ shell ============ */
+.shell{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:0 14px}
+header.top{
+  position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:10px;
+  padding:calc(10px + env(safe-area-inset-top)) 2px 10px;
+  background:color-mix(in srgb,var(--ink) 86%, transparent);
+  backdrop-filter:blur(16px);border-bottom:1px solid var(--seam);
+}
+.mark{width:30px;height:30px;border-radius:50%;flex:none;border:1px solid var(--goldline);
+  display:grid;place-items:center;color:var(--gold);font-size:13px;
+  background:radial-gradient(120% 120% at 30% 25%, color-mix(in srgb,var(--gold) 22%, transparent), transparent 60%);
+  box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--ink) 60%, transparent);}
+.wordmark{line-height:1.05}
+.wordmark .l1{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:13.5px;letter-spacing:2.2px}
+.wordmark .l1 b{color:var(--gold);font-weight:800}
+.wordmark .l2{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:1.8px;color:var(--mut2)}
+.top .sp{flex:1}
+.clock{display:flex;align-items:center;gap:6px;font-size:11.5px}
+.dotlive{width:7px;height:7px;border-radius:50%;background:var(--long);animation:pul 2s infinite}
+.dotlive.stale{background:var(--gold)} .dotlive.dead{background:var(--short);animation:none}
+@keyframes pul{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--long) 55%,transparent)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.icbtn{width:34px;height:34px;border-radius:11px;border:1px solid var(--seam);display:grid;place-items:center;color:var(--mut)}
+.icbtn:active{transform:scale(.94)}
+.icbtn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.icbtn.spin svg{animation:rot .8s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+
+main{padding:12px 0 calc(86px + env(safe-area-inset-bottom))}
+.pane{display:none}
+.pane.on{display:block;animation:pane .26s ease both}
+@keyframes pane{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.ptitle{display:flex;align-items:baseline;gap:9px;margin:4px 2px 11px}
+.ptitle h2{font-family:'Zen Kaku Gothic New',sans-serif;font-weight:900;font-size:18px;letter-spacing:1px}
+.ptitle .en{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2.4px;color:var(--gold)}
+.ptitle .r{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--mut2)}
+
+/* ============ cards: engraved bullion panels ============ */
+.card{
+  position:relative;background:linear-gradient(180deg,var(--felt),var(--moss));
+  border:1px solid var(--seam);border-radius:var(--r);padding:14px;margin-bottom:11px;
+  box-shadow:var(--shadow);
+}
+.card::before{content:"";position:absolute;left:14px;right:14px;top:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--goldline),transparent)}
+.chead{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.chead .tag{font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:2px;color:var(--gold);text-transform:uppercase}
+.chead .jp{font-family:'Zen Kaku Gothic New',sans-serif;font-weight:700;font-size:12.5px}
+.chead .r{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mut2)}
+.kicker{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.6px;color:var(--mut2);text-transform:uppercase;margin:11px 0 4px}
+p.body{font-size:12.8px}
+.note{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mut2);line-height:1.6}
+
+/* ============ today: hero + mixer rail ============ */
+.hero{padding:16px 14px 13px}
+.hero .date{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1.4px;color:var(--mut)}
+.hero .cdrow{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-top:4px}
+.hero .big{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:34px;letter-spacing:1px;line-height:1;color:var(--brass);text-shadow:0 0 22px color-mix(in srgb,var(--gold) 35%,transparent)}
+.hero .big.open{color:var(--long);text-shadow:0 0 22px color-mix(in srgb,var(--long) 30%,transparent)}
+.hero .lab{font-family:'Zen Kaku Gothic New',sans-serif;font-weight:700;font-size:12px;color:var(--mut);padding-bottom:3px}
+.chip{font-family:'JetBrains Mono',monospace;font-size:10px;padding:5px 10px;border-radius:20px;border:1px solid var(--seam2);color:var(--mut)}
+.chip b{color:var(--gold)}
+.hero .chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+
+/* mixer rail — the signature */
+.rail{margin-top:14px}
+.rail .scale{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mut2);padding:0 1px;margin-bottom:3px}
+.railbox{position:relative;border:1px solid var(--seam);border-radius:12px;overflow:hidden;
+  background:repeating-linear-gradient(90deg,transparent 0,transparent calc(100%/8 - 1px),var(--seam) calc(100%/8 - 1px),var(--seam) calc(100%/8))}
+.ch{position:relative;height:24px;border-top:1px solid var(--seam)}
+.ch:first-child{border-top:0}
+.ch .nm{position:absolute;left:7px;top:50%;transform:translateY(-50%);z-index:3;font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:1px;color:var(--mut)}
+.ch .seg{position:absolute;top:5px;bottom:5px;border-radius:6px;background:color-mix(in srgb,var(--gold) 16%,transparent);border:1px solid var(--goldline)}
+.ch.live .seg{background:color-mix(in srgb,var(--gold) 34%,transparent);box-shadow:0 0 14px color-mix(in srgb,var(--gold) 30%,transparent)}
+.ch.live .nm{color:var(--brass);font-weight:700}
+.ch.closed{opacity:.34}
+.ph{position:absolute;top:0;bottom:0;width:2px;background:var(--brass);z-index:4;box-shadow:0 0 10px var(--gold)}
+.ph::after{content:"";position:absolute;top:-1px;left:50%;transform:translateX(-50%);border:4px solid transparent;border-top-color:var(--brass)}
+.rail .legend{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:8.5px;color:var(--mut2);margin-top:5px}
+
+/* ticker */
+.rail2{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;padding:2px 2px 4px;margin:0 -2px 11px;
+  mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 14px),transparent)}
+.tk{flex:none;scroll-snap-align:start;min-width:96px;background:linear-gradient(180deg,var(--felt),var(--moss));
+  border:1px solid var(--seam);border-radius:13px;padding:8px 11px}
+.tk .k{font-family:'JetBrains Mono',monospace;font-size:8.5px;color:var(--mut2);letter-spacing:.6px}
+.tk .p{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
 .tk .d{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600}
-.cdwrap{display:flex;gap:9px;margin-bottom:12px;flex-wrap:wrap}
-.cd{flex:1;min-width:150px;background:linear-gradient(135deg,var(--panel),var(--panel2));border:1px solid var(--border);border-radius:13px;padding:11px 13px}
-.cd .lab{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.6px;text-transform:uppercase}
-.cd .val{font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:700;margin-top:2px}
-.cd .sub2{font-size:10px;color:var(--muted);margin-top:1px}
-.cd.cpi{border-color:color-mix(in srgb,var(--gold) 40%,transparent)}.cd.cpi .val{color:var(--gold)}
-.cd .ses{display:flex;gap:4px;margin-top:6px}.cd .ses span{font-family:'JetBrains Mono',monospace;font-size:8px;padding:2px 5px;border:1px solid var(--border2);border-radius:4px;color:var(--muted)}
-.cd .ses span.on{color:var(--bg);background:var(--up);border-color:var(--up)}
-.meta{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:11px;line-height:1.6}.meta b{color:var(--gold)}
-.legend{font-size:10px;color:var(--muted);margin:-2px 4px 12px;font-family:'JetBrains Mono',monospace}
-.grouphead{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:2.5px;color:var(--muted);text-transform:uppercase;margin:20px 4px 9px;display:flex;align-items:center;gap:8px}.grouphead::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
-details.acc{background:color-mix(in srgb,var(--panel) 92%,transparent);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden;position:relative;backdrop-filter:blur(6px)}
-details.acc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);box-shadow:0 0 14px color-mix(in srgb,var(--accent) 55%,transparent)}
-details.acc[open]{border-color:color-mix(in srgb,var(--accent) 35%,var(--border));box-shadow:0 10px 34px -18px color-mix(in srgb,var(--accent) 60%,transparent)}
-summary.sum{list-style:none;cursor:pointer;display:flex;align-items:center;gap:9px;padding:13px 14px 13px 15px;-webkit-tap-highlight-color:transparent}summary.sum::-webkit-details-marker{display:none}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none;box-shadow:0 0 10px var(--accent)}
-.ttl{font-family:'Zen Kaku Gothic New',sans-serif;font-weight:700;font-size:13.5px;flex:none}.ttl small{font-weight:500;font-size:11px;color:var(--muted)}
-.sub{font-size:10.5px;color:var(--muted);font-family:'JetBrains Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.chev{margin-left:auto;color:var(--muted);transition:transform .25s;flex:none;font-size:12px}details[open]>.sum .chev{transform:rotate(90deg);color:var(--accent)}
-.inner{padding:4px 15px 15px}details[open]>.inner{border-top:1px solid var(--border);padding-top:12px;animation:reveal .34s ease both}
-@keyframes reveal{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-h4{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--accent);text-transform:uppercase;margin:11px 0 3px}h4:first-child{margin-top:0}
-p{font-size:12.8px;line-height:1.7;margin-bottom:4px}.q{color:var(--muted)}
-.note{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);line-height:1.5;margin-top:8px}
-.src{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted);border:1px solid var(--border2);border-radius:4px;padding:1px 5px;margin:2px 3px 0 0;cursor:pointer}.src:active{color:var(--accent,#e3b341)}
-.up{color:var(--up)}.down{color:var(--down)}.mid{color:var(--mid)}
-.cs{display:flex;align-items:center;gap:9px;margin:5px 0;font-family:'JetBrains Mono',monospace;font-size:11px}
-.cl{width:42px;font-weight:700}
-.ct{flex:1;display:flex;align-items:stretch;height:13px;background:var(--panel2);border:1px solid var(--border);border-radius:7px;overflow:hidden}
-.ct .h{flex:1;display:flex}.ct .h.l{justify-content:flex-end}.ct .h.r{justify-content:flex-start}.ct .m{width:1px;flex:none;background:var(--border2)}.ct .f{height:100%}
-.ct .f.pos{background:linear-gradient(90deg,color-mix(in srgb,var(--up) 55%,transparent),var(--up));border-radius:0 5px 5px 0;transform-origin:left}
-.ct .f.neg{background:linear-gradient(270deg,color-mix(in srgb,var(--down) 55%,transparent),var(--down));border-radius:5px 0 0 5px;transform-origin:right}
-details[open] .ct .f{animation:grow .7s cubic-bezier(.2,.85,.25,1) both}@keyframes grow{from{transform:scaleX(0)}}
-.cv{width:54px;text-align:right;color:var(--muted)}.cvw{width:96px;text-align:right;line-height:1.15}.cvw small{color:var(--muted);font-size:9px}
-.mac{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px}@media(max-width:560px){.mac{grid-template-columns:repeat(2,1fr)}}
-.mi{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:8px 9px}.mn{font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace}.mv{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;display:block}.mc{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:600}
-.cmp{width:100%;border-collapse:collapse;font-size:11.5px;font-family:'JetBrains Mono',monospace}.cmp th{text-align:left;color:var(--muted);font-size:8.5px;font-weight:500;padding:0 5px 6px}.cmp td{padding:7px 5px;border-top:1px solid var(--border)}.cmp .sy{font-weight:700}
-.vb{font-size:9px;padding:2px 7px;border-radius:10px;white-space:nowrap}.vb.x{color:var(--down);border:1px solid color-mix(in srgb,var(--down) 45%,transparent)}.vb.o{color:var(--up);border:1px solid color-mix(in srgb,var(--up) 45%,transparent)}.vb.n{color:var(--mid);border:1px solid color-mix(in srgb,var(--mid) 40%,transparent)}
-.week{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px}.week .ev{font-family:'JetBrains Mono',monospace;font-size:10.5px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:5px 9px}.week .ev b{color:var(--gold)}
-.bp{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;flex:none}.bp.bull{color:var(--up);border:1px solid color-mix(in srgb,var(--up) 45%,transparent)}.bp.bear{color:var(--down);border:1px solid color-mix(in srgb,var(--down) 45%,transparent)}.bp.neut{color:var(--mid);border:1px solid color-mix(in srgb,var(--mid) 40%,transparent)}
-/* scorecard */
+
+/* focus strip */
+.fstrip{display:flex;gap:9px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px;margin:0 -2px;
+  mask-image:linear-gradient(90deg,transparent,#000 12px,#000 calc(100% - 12px),transparent)}
+.fc{flex:none;scroll-snap-align:start;width:158px;border:1px solid var(--seam);border-radius:14px;padding:11px 12px;
+  background:linear-gradient(165deg,var(--felt),var(--moss));text-align:left}
+.fc .sy{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:13.5px;letter-spacing:.5px}
+.fc .pr{font-family:'JetBrains Mono',monospace;font-size:12px;margin-top:1px}
+.fc .rw{display:flex;gap:5px;align-items:center;margin-top:7px;flex-wrap:wrap}
+.macg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px}
+@media(max-width:520px){.macg{grid-template-columns:repeat(2,1fr)}}
+.mi{background:var(--moss);border:1px solid var(--seam);border-radius:11px;padding:8px 10px}
+.mi .n{font-family:'JetBrains Mono',monospace;font-size:8.5px;color:var(--mut2)}
+.mi .v{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;display:block}
+.mi .c{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600}
+.week{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:9px}
+.week .ev{font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--moss);border:1px solid var(--seam);border-radius:9px;padding:5px 9px}
+.week .ev b{color:var(--gold)}
+
+/* ============ badges ============ */
+.sesb{font-family:'JetBrains Mono',monospace;font-size:8.5px;padding:2.5px 7px;border-radius:7px;border:1px solid var(--seam2);color:var(--mut);white-space:nowrap}
+.sesb.on{color:#141204;background:var(--gold);border-color:var(--gold);font-weight:700}
+.star{font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:800;padding:2.5px 7px;border-radius:7px;white-space:nowrap}
+.star.up{color:var(--long);border:1px solid color-mix(in srgb,var(--long) 55%,transparent)}
+.star.down{color:var(--short);border:1px solid color-mix(in srgb,var(--short) 55%,transparent)}
+.bp{font-size:10px;font-weight:700;padding:2.5px 9px;border-radius:20px;white-space:nowrap}
+.bp.bull{color:var(--long);border:1px solid color-mix(in srgb,var(--long) 45%,transparent)}
+.bp.bear{color:var(--short);border:1px solid color-mix(in srgb,var(--short) 45%,transparent)}
+.bp.neut{color:var(--flat);border:1px solid color-mix(in srgb,var(--flat) 40%,transparent)}
+
+/* ============ pairs ============ */
+.grouphd{display:flex;align-items:center;gap:8px;margin:16px 2px 8px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2.4px;color:var(--mut2);text-transform:uppercase}
+.grouphd.on{color:var(--gold)}
+.grouphd::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--seam),transparent)}
+.pcard{width:100%;text-align:left;display:block;position:relative;border:1px solid var(--seam);border-radius:var(--r);
+  background:linear-gradient(180deg,var(--felt),var(--moss));box-shadow:var(--shadow);padding:13px 14px 12px;margin-bottom:10px;overflow:hidden}
+.pcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--pc)}
+.pcard::after{content:"";position:absolute;left:14px;right:14px;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--goldline),transparent)}
+.pcard:active{transform:scale(.992)}
+.pr1{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.pr1 .sy{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:14.5px;letter-spacing:.4px}
+.pr1 .nm{font-size:10.5px;color:var(--mut)}
+.pr1 .r{margin-left:auto;display:flex;gap:5px;align-items:center}
+.pr2{display:flex;align-items:baseline;gap:9px;margin-top:5px}
+.pr2 .px{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:23px;letter-spacing:.4px;font-variant-numeric:tabular-nums}
+.pr2 .chg{font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:700}
+.sparkwrap{height:54px;margin:7px -3px 2px}
+.sparkwrap canvas{width:100%;height:100%;display:block}
+.rng{margin-top:7px}
+.rng .lbl{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:8.5px;color:var(--mut2);margin-bottom:3px}
+.rng .bar{position:relative;height:7px;border-radius:5px;background:var(--moss);border:1px solid var(--seam)}
+.rng .bar i{position:absolute;top:-3px;width:2px;height:11px;border-radius:2px;background:var(--brass);box-shadow:0 0 8px var(--gold)}
+.rng .bar u{position:absolute;top:-2px;width:1px;height:9px;background:var(--mut2);opacity:.8}
+.pr4{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.machip{font-family:'JetBrains Mono',monospace;font-size:8.5px;padding:2.5px 7px;border-radius:7px;border:1px solid var(--seam2);color:var(--mut)}
+.machip.a{color:var(--long);border-color:color-mix(in srgb,var(--long) 45%,transparent)}
+.machip.b{color:var(--short);border-color:color-mix(in srgb,var(--short) 45%,transparent)}
+.ptag{font-size:9px;color:var(--mut2);font-family:'JetBrains Mono',monospace;margin-top:8px}
+
+/* ============ flow (需給) ============ */
+.cs{display:flex;align-items:center;gap:9px;margin:6px 0;font-family:'JetBrains Mono',monospace;font-size:11px}
+.cs .cl{width:44px;font-weight:700}
+.ct{flex:1;display:flex;height:14px;background:var(--moss);border:1px solid var(--seam);border-radius:8px;overflow:hidden}
+.ct .h{flex:1;display:flex}.ct .h.l{justify-content:flex-end}.ct .m{width:1px;flex:none;background:var(--seam2)}
+.ct .f{height:100%}
+.ct .f.pos{background:linear-gradient(90deg,color-mix(in srgb,var(--long) 50%,transparent),var(--long));border-radius:0 6px 6px 0;transform-origin:left}
+.ct .f.neg{background:linear-gradient(270deg,color-mix(in srgb,var(--short) 50%,transparent),var(--short));border-radius:6px 0 0 6px;transform-origin:right}
+.pane.on .ct .f{animation:grow .7s cubic-bezier(.2,.85,.25,1) both}
+@keyframes grow{from{transform:scaleX(0)}}
+.cs .cv{width:56px;text-align:right;color:var(--mut)}
+.cs .cvw{width:96px;text-align:right;line-height:1.15}
+.cs .cvw small{color:var(--mut2);font-size:8.5px}
+.posrow{display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--seam);font-size:11px}
+.posrow:first-of-type{border-top:0}
+.posrow .sy{font-family:'JetBrains Mono',monospace;font-weight:800;width:66px}
+.posrow .cotp{font-family:'JetBrains Mono',monospace;font-size:9.5px;line-height:1.3}
+.posrow .cotp small{color:var(--mut2);font-size:8.5px}
+.slbar{flex:1;min-width:64px;height:9px;border-radius:6px;overflow:hidden;display:flex;border:1px solid var(--seam)}
+.slbar .s{background:color-mix(in srgb,var(--short) 70%,transparent)}
+.slbar .l{background:color-mix(in srgb,var(--long) 70%,transparent)}
+.slnum{font-family:'JetBrains Mono',monospace;font-size:8.5px;color:var(--mut);width:64px;text-align:right}
+.vb{font-size:9px;padding:2.5px 8px;border-radius:10px;white-space:nowrap;flex:none}
+.vb.x{color:var(--short);border:1px solid color-mix(in srgb,var(--short) 45%,transparent)}
+.vb.o{color:var(--long);border:1px solid color-mix(in srgb,var(--long) 45%,transparent)}
+.vb.n{color:var(--flat);border:1px solid color-mix(in srgb,var(--flat) 40%,transparent)}
+
+/* ============ news ============ */
+.bsum{font-size:13.4px;line-height:1.75;padding:12px 13px;background:var(--moss);border:1px solid var(--seam);border-radius:12px}
+.bsum::first-letter{color:var(--gold)}
+.bankrow{display:flex;gap:9px;padding:8px 0;border-top:1px solid var(--seam)}
+.bankrow:first-of-type{border-top:0}
+.bankname{flex:none;width:92px;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--gold);font-weight:700;line-height:1.5;padding-top:2px}
+.bankview{flex:1;font-size:12.2px;line-height:1.6}
+.topic{margin:12px 0 3px;display:flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.4px;text-transform:uppercase}
+.topic.dr{color:var(--c-eu)}.topic.iv{color:var(--gold)}.topic.rk{color:var(--short)}
+.src{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mut2);border:1px solid var(--seam2);border-radius:5px;padding:1.5px 6px;margin:3px 4px 0 0;cursor:pointer}
+.src:active{color:var(--gold)}
+
+/* ============ score ============ */
+.sc-tabs{display:flex;gap:6px;overflow-x:auto;padding:2px;margin:0 -2px 10px;
+  mask-image:linear-gradient(90deg,transparent,#000 10px,#000 calc(100% - 10px),transparent)}
+.sc-tab{flex:none;font-family:'JetBrains Mono',monospace;font-size:11px;padding:7px 12px;border-radius:10px;border:1px solid var(--seam);background:var(--moss);color:var(--mut)}
+.sc-tab.on{color:#141204;background:var(--brass);border-color:var(--brass);font-weight:800}
+.sc-dir{display:flex;gap:6px;margin-bottom:13px}
+.sc-dir button{flex:1;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:800;padding:9px;border-radius:11px;border:1px solid var(--seam);background:var(--moss);color:var(--mut)}
+.sc-dir button.on.long{color:#06140d;background:var(--long);border-color:var(--long)}
+.sc-dir button.on.short{color:#1a0606;background:var(--short);border-color:var(--short)}
 @property --p{syntax:'<number>';initial-value:0;inherits:false}
-.sc-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.sc-tab{font-family:'JetBrains Mono',monospace;font-size:11px;padding:6px 11px;border-radius:9px;border:1px solid var(--border);background:var(--panel2);color:var(--muted);cursor:pointer}.sc-tab.on{color:var(--bg);background:#7ee0c0;border-color:#7ee0c0;font-weight:700}
-.sc-dir{display:flex;gap:6px;margin-bottom:12px}.sc-dir button{flex:1;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;padding:8px;border-radius:9px;border:1px solid var(--border);background:var(--panel2);color:var(--muted);cursor:pointer}.sc-dir button.on.long{color:#06140d;background:var(--up);border-color:var(--up)}.sc-dir button.on.short{color:#1a0606;background:var(--down);border-color:var(--down)}
-.sc-gauge{display:flex;align-items:center;gap:15px;margin:6px 0 12px}
-.sc-ring{width:86px;height:86px;border-radius:50%;flex:none;background:conic-gradient(var(--gc,var(--up)) calc(var(--p,0)*1%),var(--border) 0);display:flex;align-items:center;justify-content:center;position:relative;transition:--p .55s ease}.sc-ring::before{content:"";position:absolute;inset:8px;border-radius:50%;background:var(--panel)}.sc-ring .pct{position:relative;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:21px}
-.sc-meta{flex:1;min-width:0}.sc-tier{font-family:'Zen Kaku Gothic New',sans-serif;font-weight:900;font-size:18px}.sc-verdict{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px}
-.sc-flags{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}.sc-flag{font-size:9px;font-family:'JetBrains Mono',monospace;padding:2px 7px;border-radius:10px;border:1px solid var(--down);color:var(--down)}.sc-flag.ok{border-color:var(--up);color:var(--up)}
-.sc-sec-t{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin:11px 0 4px}
-.sc-f{display:flex;align-items:center;gap:9px;padding:5px 0;border-top:1px solid var(--border);font-size:11.5px}.sc-f .ic{width:14px;text-align:center;font-family:'JetBrains Mono',monospace;font-weight:700;flex:none}.sc-f .fl{flex:1}.sc-f .fl small{color:var(--muted);font-size:9.5px}.sc-f .fr{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)}.sc-f.sup .ic{color:var(--up)}.sc-f.ag .ic{color:var(--down)}.sc-f.nu .ic{color:var(--mid)}
-.sc-chip{display:inline-flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:11px;padding:6px 10px;border-radius:9px;border:1px solid var(--border);background:var(--panel2);color:var(--muted);cursor:pointer;margin:0 5px 5px 0;user-select:none}.sc-chip.on{color:var(--up);border-color:color-mix(in srgb,var(--up) 55%,transparent)}.sc-chip.gate.on{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 60%,transparent)}
-.banner{background:color-mix(in srgb,var(--down) 14%,var(--panel));border:1px solid color-mix(in srgb,var(--down) 40%,transparent);color:var(--text);border-radius:11px;padding:10px 13px;font-size:11.5px;margin-bottom:12px;font-family:'JetBrains Mono',monospace}
-.subdiv{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin:13px 4px 7px}.subdiv.on{color:var(--gold)}
-.legend2{font-size:9.5px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin:1px 4px 9px;line-height:1.55}
-.sesb{font-family:'JetBrains Mono',monospace;font-size:8.5px;padding:2px 6px;border-radius:6px;border:1px solid var(--border2);color:var(--muted);white-space:nowrap}
-.sesb.on{color:#06140d;background:var(--gold);border-color:var(--gold);font-weight:700}
-.star{font-family:'JetBrains Mono',monospace;font-size:8.5px;padding:2px 6px;border-radius:6px;font-weight:700;white-space:nowrap}
-.star.up{color:var(--up);border:1px solid color-mix(in srgb,var(--up) 55%,transparent)}.star.down{color:var(--down);border:1px solid color-mix(in srgb,var(--down) 55%,transparent)}
-.ptag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;margin:0 0 6px}
-summary.sum{flex-wrap:wrap}
-.bankrow{display:flex;gap:9px;padding:7px 0;border-top:1px solid var(--border)}
-.bankname{flex:none;width:92px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#56b6c2;font-weight:700;line-height:1.5}
-.bankview{flex:1;font-size:12.2px;line-height:1.55}
-.topic{margin:11px 0 3px;display:flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.5px;text-transform:uppercase}
-.topic .tg{font-size:11px}
-.topic.dr{color:#7bb7ff}.topic.iv{color:var(--gold)}.topic.rk{color:var(--down)}
-.bsummary{font-size:13.2px;line-height:1.7;padding:10px 12px;background:var(--panel2);border:1px solid var(--border);border-radius:10px;margin-bottom:4px}
-/* widget builder */
-.wbuild{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0 4px}
-.wchip{font-family:'JetBrains Mono',monospace;font-size:11px;padding:7px 11px;border-radius:9px;border:1px solid var(--border);background:var(--panel2);color:var(--muted);cursor:pointer;user-select:none}
-.wchip.on{color:var(--bg);background:#8ab4ff;border-color:#8ab4ff;font-weight:700}
-.wlink{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
-.wurl{flex:1;min-width:180px;font-family:'JetBrains Mono',monospace;font-size:10.5px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--muted);word-break:break-all}
-.wbtn{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:8px 12px;border-radius:9px;border:1px solid #8ab4ff;background:transparent;color:#8ab4ff;cursor:pointer;text-decoration:none;white-space:nowrap}
-.wprev{margin-top:11px;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#080a0e}
+.sc-gauge{display:flex;align-items:center;gap:16px;margin:4px 0 12px}
+.sc-ring{width:96px;height:96px;border-radius:50%;flex:none;position:relative;transition:--p .6s ease;
+  background:conic-gradient(var(--gc,var(--long)) calc(var(--p,0)*1%),var(--seam) 0)}
+.sc-ring::before{content:"";position:absolute;inset:9px;border-radius:50%;background:var(--felt);border:1px solid var(--seam)}
+.sc-ring .pct{position:absolute;inset:0;display:grid;place-items:center;font-family:'JetBrains Mono',monospace;font-weight:800;font-size:22px}
+.sc-tier{font-family:'Zen Kaku Gothic New',sans-serif;font-weight:900;font-size:19px}
+.sc-verdict{font-size:11px;color:var(--mut);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.sc-flags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.sc-flag{font-size:9px;font-family:'JetBrains Mono',monospace;padding:2.5px 8px;border-radius:10px;border:1px solid var(--short);color:var(--short)}
+.sc-flag.ok{border-color:var(--long);color:var(--long)}
+.sc-f{display:flex;align-items:center;gap:9px;padding:6px 0;border-top:1px solid var(--seam);font-size:11.5px}
+.sc-f .ic{width:14px;text-align:center;font-family:'JetBrains Mono',monospace;font-weight:800;flex:none}
+.sc-f .fl{flex:1}.sc-f .fl small{color:var(--mut2);font-size:9.5px}
+.sc-f .fr{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mut2)}
+.sc-f.sup .ic{color:var(--long)}.sc-f.ag .ic{color:var(--short)}.sc-f.nu .ic{color:var(--flat)}
+.sc-chip{display:inline-flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:11px;padding:7px 11px;border-radius:10px;border:1px solid var(--seam);background:var(--moss);color:var(--mut);margin:0 5px 6px 0;user-select:none}
+.sc-chip.on{color:var(--long);border-color:color-mix(in srgb,var(--long) 55%,transparent)}
+.sc-chip.gate.on{color:var(--gold);border-color:var(--goldline)}
+
+/* ============ sheets ============ */
+.scrim{position:fixed;inset:0;z-index:60;background:rgba(4,5,2,.6);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .24s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:61;max-width:760px;margin:0 auto;
+  max-height:88dvh;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,var(--felt),var(--ink));border:1px solid var(--seam);border-bottom:0;
+  border-radius:22px 22px 0 0;box-shadow:0 -20px 60px rgba(0,0,0,.6);
+  transform:translateY(104%);transition:transform .3s cubic-bezier(.22,.9,.3,1)}
+.sheet.on{transform:translateY(0)}
+.sheet .grab{width:42px;height:4px;border-radius:3px;background:var(--seam2);margin:9px auto 2px;flex:none}
+.sheet .shd{display:flex;align-items:center;gap:9px;padding:8px 16px 10px;border-bottom:1px solid var(--seam);flex:none}
+.sheet .shd .sy{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:16px}
+.sheet .shd .nm{font-size:11px;color:var(--mut)}
+.sheet .shd .x{margin-left:auto}
+.sheet .bodyc{overflow-y:auto;padding:13px 16px calc(20px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch}
+.bigpx{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.bigpx .px{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:32px;letter-spacing:.5px}
+.bigpx .chg{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700}
+.bigchart{height:128px;margin:10px -4px 4px}
+.bigchart canvas{width:100%;height:100%;display:block}
+.chiprow{display:flex;gap:6px;flex-wrap:wrap;margin:9px 0 2px}
+.gotosc{display:block;width:100%;text-align:center;font-family:'JetBrains Mono',monospace;font-weight:800;font-size:12px;
+  border:1px solid var(--goldline);color:var(--gold);border-radius:12px;padding:11px;margin-top:14px;
+  background:color-mix(in srgb,var(--gold) 8%,transparent)}
+.gotosc:active{transform:scale(.985)}
+
+/* settings */
+.setrow{display:flex;align-items:center;gap:10px;padding:12px 2px;border-top:1px solid var(--seam)}
+.setrow:first-of-type{border-top:0}
+.setrow .t{font-weight:700;font-size:12.5px}
+.setrow .d{font-size:10px;color:var(--mut2)}
+.setrow .r{margin-left:auto}
+.tgl{width:46px;height:26px;border-radius:14px;border:1px solid var(--seam2);background:var(--moss);position:relative;flex:none}
+.tgl i{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:var(--mut);transition:.2s}
+.tgl.on{border-color:var(--goldline)} .tgl.on i{left:22px;background:var(--gold)}
+.wchips{display:flex;flex-wrap:wrap;gap:7px;margin:9px 0 4px}
+.wchip{font-family:'JetBrains Mono',monospace;font-size:10.5px;padding:7px 11px;border-radius:10px;border:1px solid var(--seam);background:var(--moss);color:var(--mut)}
+.wchip.on{color:#141204;background:var(--brass);border-color:var(--brass);font-weight:800}
+.wurl{font-family:'JetBrains Mono',monospace;font-size:9.5px;background:var(--moss);border:1px solid var(--seam);border-radius:9px;padding:8px 10px;color:var(--mut);word-break:break-all;margin-top:8px}
+.wopen{display:inline-block;margin-top:8px;font-family:'JetBrains Mono',monospace;font-weight:800;font-size:11px;border:1px solid var(--goldline);color:var(--gold);border-radius:10px;padding:8px 14px;text-decoration:none}
+.wprev{margin-top:10px;border:1px solid var(--seam);border-radius:12px;overflow:hidden;background:#0b0d08}
 .wprev iframe{width:100%;height:300px;border:0;display:block}
-footer{margin-top:22px;padding-top:14px;border-top:1px solid var(--border);color:var(--muted);font-size:10.5px;line-height:1.7}
+.freshrow{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mut);padding:5px 2px;border-top:1px solid var(--seam)}
+.freshrow:first-of-type{border-top:0}
+.freshrow b{color:var(--text);font-weight:600}
+
+/* ============ tab dock ============ */
+nav.dock{position:fixed;left:0;right:0;bottom:0;z-index:50;max-width:760px;margin:0 auto;
+  display:flex;border-top:1px solid var(--seam);
+  background:color-mix(in srgb,var(--ink) 84%, transparent);backdrop-filter:blur(18px);
+  padding:6px 6px calc(8px + env(safe-area-inset-bottom))}
+.dk{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0 3px;border-radius:12px;color:var(--mut2);position:relative}
+.dk svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.dk span{font-size:9px;font-weight:700;letter-spacing:.5px}
+.dk.on{color:var(--brass)}
+.dk.on::before{content:"";position:absolute;top:-7px;left:24%;right:24%;height:2px;border-radius:2px;background:var(--gold);box-shadow:0 0 10px var(--gold)}
+.dk:active{transform:scale(.94)}
+
+/* skeleton */
+.sk{border-radius:var(--r);border:1px solid var(--seam);background:var(--felt);height:84px;margin-bottom:11px;position:relative;overflow:hidden}
+.sk::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,color-mix(in srgb,var(--brass) 7%,transparent) 50%,transparent 70%);animation:shim 1.4s infinite}
+@keyframes shim{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.banner{background:color-mix(in srgb,var(--short) 13%,var(--felt));border:1px solid color-mix(in srgb,var(--short) 40%,transparent);border-radius:12px;padding:10px 13px;font-size:11px;margin-bottom:11px;font-family:'JetBrains Mono',monospace}
+footer{margin:20px 2px 6px;color:var(--mut2);font-size:9.5px;line-height:1.8;font-family:'JetBrains Mono',monospace}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
 </style>
 </head>
 <body data-theme="dark">
-<div class="wrap">
-  <header>
-    <div class="brand"><span class="diamond">◆</span><div><div class="bname">TRADE <span>DESK</span></div><div class="bsub">auto-updating · PWA</div></div></div>
-    <div class="hr"><div class="live"><span class="pulse"></span><b id="utc">--:--:--</b></div><button class="tbtn" id="theme">☀</button></div>
+
+<div class="shell">
+  <header class="top">
+    <div class="mark">◆</div>
+    <div class="wordmark"><div class="l1">MACRO <b>MIXER</b></div><div class="l2">MM · BULLION TERMINAL</div></div>
+    <div class="sp"></div>
+    <div class="clock mono"><span class="dotlive" id="liveDot"></span><b id="utc">--:--:--</b></div>
+    <button class="icbtn" id="btnRefresh" aria-label="更新">
+      <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+    </button>
+    <button class="icbtn" id="btnSet" aria-label="設定">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19 12c0-.6.5-1.2.4-1.8l1.2-2-2-3.4-2.3.6c-.5-.4-1.4-.8-2-1L13.7 2h-3.4l-.6 2.4c-.6.2-1.5.6-2 1L5.4 4.8l-2 3.4 1.2 2c-.1.6.4 1.2.4 1.8s-.5 1.2-.4 1.8l-1.2 2 2 3.4 2.3-.6c.5.4 1.4.8 2 1l.6 2.4h3.4l.6-2.4c.6-.2 1.5-.6 2-1l2.3.6 2-3.4-1.2-2c.1-.6-.4-1.2-.4-1.8z"/></svg>
+    </button>
   </header>
-  <div id="banner"></div>
-  <div class="pulse-row" id="pulse"></div>
-  <div class="cdwrap">
-    <div class="cd"><div class="lab">次セッション / 更新目安</div><div class="val" id="cdSession">--:--:--</div><div class="sub2" id="cdSessionName">—</div><div class="ses" id="sess"></div></div>
-    <div class="cd cpi"><div class="lab">米CPIまで ★</div><div class="val" id="cdCpi">--</div><div class="sub2">水 21:30 JST</div></div>
-  </div>
-  <div class="meta" id="meta">読み込み中…</div>
-  <div class="legend">▸ タップで詳細展開。［　］＝出所（長押しで元記事へ）。3時間ごと自動更新。</div>
-  <div id="app"></div>
-  <footer id="foot"></footer>
+
+  <main>
+    <div id="banner"></div>
+    <section class="pane" id="p-today"></section>
+    <section class="pane" id="p-pairs"></section>
+    <section class="pane" id="p-flow"></section>
+    <section class="pane" id="p-news"></section>
+    <section class="pane" id="p-score"></section>
+    <footer id="foot"></footer>
+  </main>
+</div>
+
+<nav class="dock" id="dock">
+  <button class="dk" data-tab="today"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></svg><span>今日</span></button>
+  <button class="dk" data-tab="pairs"><svg viewBox="0 0 24 24"><path d="M7 4v3M7 17v3M5 7h4v10H5zM17 2v4M17 18v4M15 6h4v12h-4z"/></svg><span>ペア</span></button>
+  <button class="dk" data-tab="flow"><svg viewBox="0 0 24 24"><path d="M12 4v17M5 21h14M5 6h14"/><path d="M7 6l-2.6 5.4a2.9 2.9 0 0 0 5.2 0L7 6zM17 6l-2.6 5.4a2.9 2.9 0 0 0 5.2 0L17 6z"/></svg><span>需給</span></button>
+  <button class="dk" data-tab="news"><svg viewBox="0 0 24 24"><path d="M4 5h13v14a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2z"/><path d="M17 8h3v11a2 2 0 0 1-2 2"/><path d="M7.5 9h6M7.5 12.5h6M7.5 16h4"/></svg><span>ニュース</span></button>
+  <button class="dk" data-tab="score"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg><span>採点</span></button>
+</nav>
+
+<!-- pair detail sheet -->
+<div class="scrim" id="scrim1"></div>
+<div class="sheet" id="sheetPair" role="dialog" aria-modal="true">
+  <div class="grab"></div>
+  <div class="shd"><span class="sy mono" id="shSy"></span><span class="nm" id="shNm"></span>
+    <button class="icbtn x" id="shX" aria-label="閉じる"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <div class="bodyc" id="shBody"></div>
+</div>
+
+<!-- settings sheet -->
+<div class="scrim" id="scrim2"></div>
+<div class="sheet" id="sheetSet" role="dialog" aria-modal="true">
+  <div class="grab"></div>
+  <div class="shd"><span class="sy mono">SETTINGS</span><span class="nm">設定・ウィジェット・データ</span>
+    <button class="icbtn x" id="setX" aria-label="閉じる"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <div class="bodyc" id="setBody"></div>
 </div>
 
 <script>
-/* ---------- service worker ---------- */
-if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js').catch(()=>{}); }
-
-/* ---------- clock / sessions / countdowns ---------- */
+"use strict";
+/* ================= helpers ================= */
+function $(s,r){return (r||document).querySelector(s);}
+function $$(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s));}
 function pad(n){return String(n).padStart(2,'0');}
-function clock(){
-  var now=new Date();
-  document.getElementById('utc').textContent=now.toISOString().slice(11,19)+'Z';
-  if(typeof SESS!=='undefined'){
-    var order=['SYD','TOK','LDN','NY'];
-    var se=document.getElementById('sess'); if(se) se.innerHTML=order.map(k=>'<span class="'+(sesActive(k,now)?'on':'')+'">'+k+'</span>').join('');
-    var nextK=null,nextMs=null; order.forEach(function(k){ if(!sesActive(k,now)){var ms=msUntilOpen(k,now);if(ms!=null&&(nextMs==null||ms<nextMs)){nextMs=ms;nextK=k;}} });
-    var cs=document.getElementById('cdSession');
-    if(cs){ if(nextK!=null){var s=Math.floor(nextMs/1000);cs.textContent=pad(Math.floor(s/3600))+':'+pad(Math.floor(s%3600/60))+':'+pad(s%60);document.getElementById('cdSessionName').textContent=SESS[nextK].jp+'開場まで';} else {cs.textContent='OPEN';document.getElementById('cdSessionName').textContent='主要市場 取引時間中';} }
-    if(typeof PAIRS!=='undefined') PAIRS.forEach(function(p){ var el=document.getElementById('co_'+p); if(!el)return; var st=pairSession(p,now); if(st.active){el.className='sesb on';el.textContent='⚡'+st.activeName;} else if(st.next){el.className='sesb';el.textContent=st.next.name+' '+fmtDur(st.next.ms);} else {el.className='sesb';el.textContent='—';} });
-  }
-  var cpi=nextWed1230()-now.getTime(),el=document.getElementById('cdCpi');
-  if(el){ if(cpi<=0)el.textContent='発表時間帯'; else{var d=Math.floor(cpi/864e5),hh=Math.floor(cpi%864e5/36e5),mm=Math.floor(cpi%36e5/6e4);el.textContent=d+'日 '+pad(hh)+':'+pad(mm);} }
-}
-function nextWed1230(){ // next Wed 12:30 UTC (approx US CPI slot)
-  var n=new Date(),day=n.getUTCDay(),add=(3-day+7)%7; var t=new Date(Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate()+add,12,30,0));
-  if(t.getTime()<n.getTime())t=new Date(t.getTime()+7*864e5); return t.getTime();
-}
-setInterval(clock,1000); clock();
-document.getElementById('theme').onclick=function(){var b=document.body,d=b.getAttribute('data-theme')==='dark';b.setAttribute('data-theme',d?'light':'dark');this.textContent=d?'☾':'☀';};
-
-/* ---------- load data (timeout + offline fallback) ---------- */
-var DATA=null;
-async function load(){
-  var ctrl=new AbortController(),t=setTimeout(()=>ctrl.abort(),12000);
-  try{
-    var r=await fetch('./data.json?t='+Date.now(),{signal:ctrl.signal,cache:'no-store'}); clearTimeout(t);
-    var d=await r.json();
-    if(!r.ok || !d || !d.prices) throw new Error('api');
-    DATA=d; render(false);
-  }catch(e){
-    clearTimeout(t);
-    try{ var c=await fetch('./data.json'); DATA=await c.json(); render(true); }
-    catch(e2){ document.getElementById('meta').innerHTML='<span class="down">データ取得に失敗しました。</span>'; }
-  }
-}
-
-/* ---------- helpers ---------- */
 function sgn(x){return x>0?1:x<0?-1:0;}
 function fmtN(n){return (n==null||isNaN(n))?'—':Number(n).toLocaleString('en-US');}
 function esc(s){return String(s==null?'':s).replace(/[<>&]/g,function(c){return c==='<'?'&lt;':c==='>'?'&gt;':'&amp;';});}
-function acc(accent,ttl,sub,inner,open){return '<details class="acc" style="--accent:'+accent+'"'+(open?' open':'')+'><summary class="sum"><span class="dot"></span><span class="ttl">'+ttl+'</span><span class="sub">'+(sub||'')+'</span><span class="chev">▸</span></summary><div class="inner">'+inner+'</div></details>';}
-function divBar(sign,wpct,labelHtml,col){ // sign +1 right(green)/-1 left(red)
-  var fill='<span class="f '+(sign>0?'pos':'neg')+'" style="width:'+Math.min(100,wpct)+'%"></span>';
-  var L=sign<0?fill:'', R=sign>0?fill:'';
-  return '<div class="cs"><span class="cl">'+labelHtml+'</span><div class="ct"><div class="h l">'+L+'</div><div class="m"></div><div class="h r">'+R+'</div></div><span class="'+(col?'cv cvw':'cv')+'" style="'+(col?'color:'+col:'')+'">';
-}
+function relTime(iso){if(!iso)return'—';var ms=Date.now()-new Date(iso).getTime();if(ms<0)ms=0;var m=Math.floor(ms/6e4);if(m<1)return'たった今';if(m<60)return m+'分前';var h=Math.floor(m/60);if(h<48)return h+'時間前';return Math.floor(h/24)+'日前';}
+var RM=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* ---------- pair config ----------
-   liq = global turnover share % (BIS 2022, gold=proxy) for liquidity ordering
-   ses = advantaged trading sessions ; tag = character ; dec = decimals */
+/* ================= config ================= */
 var PC={
-  EURUSD:{n:'ユーロドル',c:'#6aa0ff',q:'EURUSD',cot:'EUR',base:'EUR',quote:'USD',dec:4,liq:22.7,ses:['LDN','NY'],tag:'最大流動性・対ドル基軸・米欧金利差'},
-  USDJPY:{n:'ドル円',c:'#4ec9b0',q:'USDJPY',cot:'JPY',base:'USD',quote:'JPY',dec:2,liq:13.5,ses:['TOK','LDN','NY'],tag:'日米金利差・リスク・介入警戒'},
-  GBPUSD:{n:'ポンドドル',c:'#e08a9b',q:'GBPUSD',cot:'GBP',base:'GBP',quote:'USD',dec:4,liq:9.5,ses:['LDN','NY'],tag:'英BOE金利・対ドル'},
-  XAUUSD:{n:'ゴールド',c:'#e3b341',q:'GCUSD',cot:'GOLD',base:'gold',dec:1,liq:9,ses:['LDN','NY'],tag:'実質金利・有事/地政学・ドル逆相関'},
-  USDCAD:{n:'米ドル/加ドル',c:'#e0a96b',q:'USDCAD',cot:'CAD',base:'USD',quote:'CAD',dec:4,liq:5.5,ses:['NY'],tag:'原油相関・北米指標'},
-  AUDUSD:{n:'豪ドル/米ドル',c:'#5fd0c0',q:'AUDUSD',cot:'AUD',base:'AUD',quote:'USD',dec:4,liq:5.1,ses:['SYD','TOK'],tag:'資源国・中国景気・リスク代理'},
-  EURJPY:{n:'ユーロ円',c:'#c792ea',q:'EURJPY',cot:'EURJPY',base:'EUR',quote:'JPY',dec:2,liq:1.9,ses:['TOK','LDN'],tag:'リスク選好クロス'},
-  GBPJPY:{n:'ポンド円',c:'#d18ad1',q:'GBPJPY',cot:'GBPJPY',base:'GBP',quote:'JPY',dec:2,liq:1.1,ses:['TOK','LDN'],tag:'高ボラ・リスク選好バロメーター'}
+  EURUSD:{n:'ユーロドル',c:'var(--c-eu)',q:'EURUSD',cot:'EUR',base:'EUR',quote:'USD',dec:4,liq:22.7,ses:['LDN','NY'],tag:'最大流動性・対ドル基軸・米欧金利差'},
+  USDJPY:{n:'ドル円',c:'var(--c-uj)',q:'USDJPY',cot:'JPY',base:'USD',quote:'JPY',dec:2,liq:13.5,ses:['TOK','LDN','NY'],tag:'日米金利差・リスク・介入警戒'},
+  GBPUSD:{n:'ポンドドル',c:'var(--c-gu)',q:'GBPUSD',cot:'GBP',base:'GBP',quote:'USD',dec:4,liq:9.5,ses:['LDN','NY'],tag:'英BOE金利・対ドル'},
+  XAUUSD:{n:'ゴールド',c:'var(--c-xa)',q:'GCUSD',cot:'GOLD',base:'gold',dec:1,liq:9,ses:['LDN','NY'],tag:'実質金利・有事/地政学・ドル逆相関'},
+  USDCAD:{n:'米ドル/加ドル',c:'var(--c-uc)',q:'USDCAD',cot:'CAD',base:'USD',quote:'CAD',dec:4,liq:5.5,ses:['NY'],tag:'原油相関・北米指標'},
+  AUDUSD:{n:'豪ドル/米ドル',c:'var(--c-au)',q:'AUDUSD',cot:'AUD',base:'AUD',quote:'USD',dec:4,liq:5.1,ses:['SYD','TOK'],tag:'資源国・中国景気・リスク代理'},
+  EURJPY:{n:'ユーロ円',c:'var(--c-ej)',q:'EURJPY',cot:'EURJPY',base:'EUR',quote:'JPY',dec:2,liq:1.9,ses:['TOK','LDN'],tag:'リスク選好クロス'},
+  GBPJPY:{n:'ポンド円',c:'var(--c-gj)',q:'GBPJPY',cot:'GBPJPY',base:'GBP',quote:'JPY',dec:2,liq:1.1,ses:['TOK','LDN'],tag:'高ボラ・リスク選好バロメーター'}
 };
 var PAIRS=Object.keys(PC);
-
-/* ---------- FX sessions (DST-aware via Intl timeZone) ---------- */
 var SESS={
   SYD:{tz:'Australia/Sydney',o:7,c:16,jp:'シドニー'},
   TOK:{tz:'Asia/Tokyo',o:9,c:18,jp:'東京'},
   LDN:{tz:'Europe/London',o:8,c:16,jp:'ロンドン'},
   NY:{tz:'America/New_York',o:8,c:17,jp:'NY'}
 };
-function tzParts(tz,date){var f=new Intl.DateTimeFormat('en-US',{timeZone:tz,hour12:false,weekday:'short',hour:'2-digit',minute:'2-digit'});var o={};f.formatToParts(date).forEach(p=>o[p.type]=p.value);if(o.hour==='24')o.hour='00';return o;}
-function tzOffMin(tz,date){var f=new Intl.DateTimeFormat('en-US',{timeZone:tz,hour12:false,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});var o={};f.formatToParts(date).forEach(p=>o[p.type]=p.value);if(o.hour==='24')o.hour='00';var asUTC=Date.UTC(+o.year,+o.month-1,+o.day,+o.hour,+o.minute,+o.second);return Math.round((asUTC-date.getTime())/6e4);}
+var SRC={'InvestingLive':'https://investinglive.com','みずほ':'https://www.mizuhobank.co.jp/market/index.html','SMBC':'https://www.smbc.co.jp/market/pdf/comment.pdf','MUFG':'https://www.mufgresearch.com/fx/','Myfxbook':'https://www.myfxbook.com/community/outlook','FXSSI':'https://fxssi.com/tools/current-ratio','Minkabu':'https://fx.minkabu.jp/news','CFTC':'https://www.tradingster.com/cot','FMP':'https://financialmodelingprep.com/'};
+
+/* ================= time / sessions (DST-aware) ================= */
+function tzParts(tz,date){var f=new Intl.DateTimeFormat('en-US',{timeZone:tz,hour12:false,weekday:'short',hour:'2-digit',minute:'2-digit'});var o={};f.formatToParts(date).forEach(function(p){o[p.type]=p.value;});if(o.hour==='24')o.hour='00';return o;}
+function tzOffMin(tz,date){var f=new Intl.DateTimeFormat('en-US',{timeZone:tz,hour12:false,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});var o={};f.formatToParts(date).forEach(function(p){o[p.type]=p.value;});if(o.hour==='24')o.hour='00';var asUTC=Date.UTC(+o.year,+o.month-1,+o.day,+o.hour,+o.minute,+o.second);return Math.round((asUTC-date.getTime())/6e4);}
 function sesActive(k,date){var s=SESS[k],pr=tzParts(s.tz,date),hr=+pr.hour+(+pr.minute)/60,wd=pr.weekday;if(wd==='Sat'||wd==='Sun')return false;return hr>=s.o&&hr<s.c;}
 function msUntilOpen(k,date){var s=SESS[k],off=tzOffMin(s.tz,date),lnMs=date.getTime()+off*6e4,ln=new Date(lnMs);
   for(var add=0;add<8;add++){var t=Date.UTC(ln.getUTCFullYear(),ln.getUTCMonth(),ln.getUTCDate()+add,s.o,0,0);if(t<=lnMs)continue;var wd=new Date(t).getUTCDay();if(wd===6||wd===0)continue;return (t-off*6e4)-date.getTime();}
   return null;}
 function pairSession(p,date){var list=PC[p].ses||[],active=false,activeName='',best=null;
-  list.forEach(function(k){ if(sesActive(k,date)){active=true;if(!activeName)activeName=SESS[k].jp;} else {var ms=msUntilOpen(k,date);if(ms!=null&&(best==null||ms<best.ms))best={ms:ms,name:SESS[k].jp};} });
+  list.forEach(function(k){if(sesActive(k,date)){active=true;if(!activeName)activeName=SESS[k].jp;}else{var ms=msUntilOpen(k,date);if(ms!=null&&(best==null||ms<best.ms))best={ms:ms,name:SESS[k].jp};}});
   return {active:active,activeName:activeName,next:best};}
 function fmtDur(ms){if(ms==null)return'—';if(ms<0)ms=0;var h=Math.floor(ms/36e5),m=Math.floor(ms%36e5/6e4);return h>0?(h+'h'+pad(m)+'m'):(m+'m');}
-/* auto-confluence conviction (data-only) for the ★ tradeable marker */
-function autoConviction(p){var F=autoFactors(p),pos=0,neg=0,tot=0;F.forEach(function(f){tot+=f.w;if(f.sign>0)pos+=f.w;else if(f.sign<0)neg+=f.w;});if(!tot)return{dir:0,mag:0};var net=(pos-neg)/tot;return{dir:net>0?1:net<0?-1:0,mag:Math.abs(net)};}
+function sesBadgeTxt(p,now){var st=pairSession(p,now);return st.active?('⚡'+st.activeName):(st.next?(st.next.name+' '+fmtDur(st.next.ms)):'—');}
+function nextWed1230(){var n=new Date(),day=n.getUTCDay(),add=(3-day+7)%7;var t=new Date(Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate()+add,12,30,0));if(t.getTime()<n.getTime())t=new Date(t.getTime()+7*864e5);return t.getTime();}
 
-/* ---------- render ---------- */
-function render(offline){
-  var d=DATA,a=d.analysis||{},up=new Date(d.updated);
-  // banner
-  document.getElementById('banner').innerHTML = offline?'<div class="banner">オフライン表示（最終更新: '+up.toLocaleString('ja-JP')+'）。オンライン時に自動更新。</div>':'';
-  // meta + staleness
-  var hrs=(Date.now()-up.getTime())/36e5;
-  var stale = hrs>6 ? ' ／ <span class="down">⚠ 約'+Math.floor(hrs)+'時間前のデータ（ソース更新待ち）</span>' : '';
-  var noAna = (a&&Object.keys(a).length)?'':' ／ <span class="down">分析未生成</span>';
-  document.getElementById('meta').innerHTML='最終更新 <b>'+up.toLocaleString('ja-JP')+'</b> ／ 3時間ごと自動更新'+noAna+stale;
-  // pulse
-  renderPulse();
-  // build app
-  var H='';
-  H+=acc('#e3b341','本日の概況', '集約サマリー', '<p>'+(a.overview||'（分析未生成）数値はパルス/各枠を参照。')+'</p>', true);
-  H+=scorecardHTML();
-  H+=strengthHTML(a);
-  H+=riskMacroHTML(a);
-  H+=acc('#f5c563','シナリオ','米CPI次第', '<div class="week"><div class="ev"><b>水</b> 米CPI★</div><div class="ev"><b>木</b> ECB・PPI</div><div class="ev"><b>金</b> 独CPI・英GDP</div></div><p>'+(a.scenario||'CPI上振れ→ドル高継続 / 下振れ→巻き戻し。')+'</p>',false);
-  H+=cotRetailHTML(a);
-  H+=bankHTML(a);
-  H+='<div class="grouphead">各通貨ペア</div>';
-  H+='<div class="legend2">並び順＝①いまセッション優位 ②世界流動性シェア順。⚡＝主要セッション中／★買・★売＝データ優位で取引妙味／市場名＋残時間＝開場まで。</div>';
-  var nowD=new Date();
-  var ranked=PAIRS.map(function(p){var st=pairSession(p,nowD);return {p:p,active:st.active,st:st,cv:autoConviction(p),liq:PC[p].liq};});
-  ranked.sort(function(x,y){return (y.active-x.active)||(y.liq-x.liq);});
-  var act=ranked.filter(r=>r.active),ina=ranked.filter(r=>!r.active);
-  if(act.length){ H+='<div class="subdiv on">⚡ 時間帯優位（取引時間中・上位表示）</div>'; act.forEach(r=>H+=pairHTML(r.p,a,r.st,r.cv)); H+='<div class="subdiv">その他（時間帯優位なし・参考）</div>'; ina.forEach(r=>H+=pairHTML(r.p,a,r.st,r.cv)); }
-  else { ranked.forEach(r=>H+=pairHTML(r.p,a,r.st,r.cv)); }
-  H+=widgetBuilderHTML();
-  document.getElementById('app').innerHTML=H;
-  document.getElementById('foot').innerHTML='<b>情報源</b>：FMP（価格・指数・金利）/ CFTC（COT）/ Myfxbook・FXSSI（個人）/ SMBC・みずほ・MUFG・InvestingLive・Web（ニュース）。サーバー側で3時間ごと取得→本アプリは描画のみ。判断材料であり売買助言ではありません。'+(d.errors&&d.errors.length?'<br><span class="q">取得メモ: '+d.errors.join(' / ')+'</span>':'');
-  initSC(); bindSrc(); bindDetailsAnim(); wbBind();
-}
-function renderPulse(){
-  var p=DATA.prices,y=DATA.yields,row='';
-  function tk(k,obj,sfx){ if(!obj)return''; var c=obj.chg>0?'up':obj.chg<0?'down':'mid'; var dv=obj.derived?'算出':(obj.chg==null?'':(obj.chg>0?'+':'')+Number(obj.chg).toFixed(2)+'%'); return '<div class="tk"><div class="k">'+k+'</div><div class="p">'+(obj.price!=null?Number(obj.price).toFixed(sfx||2):'—')+'</div><div class="d '+c+'">'+dv+'</div></div>';}
-  row+=tk('USDJPY',p.USDJPY,2);row+=tk('EURUSD',p.EURUSD,4);row+=tk('GBPUSD',p.GBPUSD,4);row+=tk('AUDUSD',p.AUDUSD,4);row+=tk('USDCAD',p.USDCAD,4);row+=tk('EURJPY',p.EURJPY,2);row+=tk('GBPJPY',p.GBPJPY,2);row+=tk('GOLD',p.GCUSD,1);row+=tk('S&P500',p.GSPC,0);
-  if(y&&y.y10!=null)row+='<div class="tk"><div class="k">US10Y</div><div class="p">'+y.y10+'%</div><div class="d mid">'+(y.y2!=null?'2Y '+y.y2+'%':'')+'</div></div>';
-  document.getElementById('pulse').innerHTML=row;
-}
-function strengthHTML(a){
-  var s=DATA.strength||[]; if(!s.length)return'';
-  var mx=Math.max.apply(null,s.map(x=>Math.abs(x.score)))||1;
-  var bars=s.map(x=>{var sign=sgn(x.score),col=sign>0?'var(--up)':sign<0?'var(--down)':'var(--mid)';return divBar(sign,Math.abs(x.score)/mx*100,x.ccy,null)+'<span style="color:'+col+'">'+(x.score>0?'+':'')+x.score+'</span></span></div>';}).join('').replace(/cv cvw/g,'cv');
-  var sub=s.length?(s[0].ccy+'最強 / '+s[s.length-1].ccy+'最弱'):'';
-  return acc('#9bd66f','通貨強弱',sub,'<p class="note">対ドル日次%から算出。右=強い/左=弱い ［FMP］</p>'+bars+'<p>'+(a.strengthRead||'')+'</p>',false);
-}
-function riskMacroHTML(a){
-  var p=DATA.prices,y=DATA.yields;
-  var mi=function(n,obj,sfx,unit){if(!obj)return'';var c=obj.chg<0?'down':'up';return '<div class="mi"><span class="mn">'+n+'</span><span class="mv">'+(obj.price!=null?Number(obj.price).toFixed(sfx):'—')+(unit||'')+'</span><span class="mc '+c+'">'+(obj.chg!=null?(obj.chg>0?'+':'')+Number(obj.chg).toFixed(2)+'%':'')+'</span></div>';};
-  var grid='<div class="mac">'+mi('S&P500',p.GSPC,0,'')+mi('GOLD',p.GCUSD,1,'')+
-    '<div class="mi"><span class="mn">US 2Y</span><span class="mv">'+(y.y2!=null?y.y2+'%':'—')+'</span></div>'+
-    '<div class="mi"><span class="mn">US 10Y</span><span class="mv">'+(y.y10!=null?y.y10+'%':'—')+'</span></div></div>';
-  return acc('#ff8c6b','リスク・マクロ','株/金利/金',grid+'<p>'+(a.riskMacro||'')+'</p>',false);
-}
-function cotRetailHTML(a){
-  var cot=DATA.cot||{},ret=(a&&a.retail)||{};
-  var mx=Math.max.apply(null,Object.values(cot).map(c=>Math.abs(c.net||0)))||1;
-  var order=[['GOLD','XAUUSD'],['EUR','EURUSD'],['JPY','USDJPY'],['GBP','GBPUSD'],['AUD','AUDUSD'],['CAD','USDCAD']];
-  var quoteCcy={JPY:1,CAD:1}; //相手通貨：ペア方向はCOTネットの逆
-  var bars=order.map(function(o){var c=cot[o[0]];if(!c)return'';var sign=sgn(c.net),col=sign>0?'var(--up)':'var(--down)';
-    return divBar(sign,Math.abs(c.net)/mx*100,o[0],col)+(c.net>0?'+':'')+fmtN(c.net)+'<br><small>'+(c.chg!=null?(c.chg>0?'+':'')+fmtN(c.chg):'')+'</small></span></div>';}).join('');
-  var rows=order.map(function(o){var c=cot[o[0]];if(!c)return'';var pr=o[1],r=ret[pr]||{};
-    var bullPair=quoteCcy[o[0]]?c.net<0:c.net>0;
-    var bigTxt=(c.net>0?'買越 +':'売越 ')+fmtN(c.net)+(quoteCcy[o[0]]?'<br><small>'+(bullPair?pr+'↑寄り':pr+'↓寄り')+'</small>':'');
-    var rt=r.s!=null?('S'+r.s+'/L'+(r.l!=null?r.l:100-r.s)):'要確認';
-    var verdict;
-    if(r.s!=null){var retShort=r.s>50,agree=(bullPair&&!retShort)||(!bullPair&&retShort);verdict=agree?'<span class="vb o">一致</span>':'<span class="vb x">逆</span>';}
-    else verdict='<span class="vb n">'+(bullPair?'大口↑':'大口↓')+'</span>';
-    return '<tr><td class="sy">'+pr+'</td><td class="'+(c.net>0?'up':'down')+'">'+bigTxt+'</td><td>'+rt+'</td><td>'+verdict+'</td></tr>';}).join('');
-  var inner='<p class="note">投機筋ネット(右=買越/左=売越)。JPY/CADは相手通貨のためペア方向は逆。下表で個人と比較 ［CFTC・Tradingster／Myfxbook・FXSSI］</p>'+bars+
-    '<table class="cmp" style="margin-top:8px"><tr><th>銘柄</th><th>大口(COT)</th><th>個人(S/L)</th><th>判定</th></tr>'+rows+'</table>'+(a&&a.cotReading?'<p>'+a.cotReading+'</p>':'');
-  return acc('#5fd08a','大口 × 個人','ポジション比較',inner,false);
-}
-function bankHTML(a){
-  var b=(a&&a.bank)||{};
-  var summary=b.summary?'<div class="bsummary">'+esc(b.summary)+'</div>':'';
-  var banks=(b.banks&&b.banks.length)?'<div class="topic dr"><span class="tg">🏦</span>各社ビュー</div>'+
-    b.banks.filter(x=>x&&(x.name||x.view)).map(x=>'<div class="bankrow"><span class="bankname">'+esc(x.name||'—')+'</span><span class="bankview">'+esc(x.view||'')+'</span></div>').join(''):'';
-  var wk=(b.rangeUSDJPY||b.rangeEURJPY)?'<div class="week" style="margin-top:10px">'+(b.rangeUSDJPY?'<div class="ev">USDJPY 予想 <b>'+esc(b.rangeUSDJPY)+'</b></div>':'')+(b.rangeEURJPY?'<div class="ev">EURJPY 予想 <b>'+esc(b.rangeEURJPY)+'</b></div>':'')+'</div>':'';
-  var dr=b.drivers?'<div class="topic dr"><span class="tg">⚙</span>ドライバー</div><p>'+esc(b.drivers)+'</p>':'';
-  var iv=b.intervention?'<div class="topic iv"><span class="tg">⚠</span>介入警戒</div><p>'+esc(b.intervention)+'</p>':'';
-  var rk=b.risk?'<div class="topic rk"><span class="tg">▲</span>リスク</div><p>'+esc(b.risk)+'</p>':'';
-  var has=summary||banks||dr||iv||rk||wk;
-  var inner=summary+banks+wk+dr+iv+rk+(has?'':'<p class="q">未生成。ANTHROPIC_API_KEY設定（＋web検索）で自動生成されます。</p>');
-  return acc('#56b6c2','銀行・ニュース要約',b.summary?'各社集約':'集約',inner,false);
-}
-/* ---------- widget builder ---------- */
-var WB={overview:true,news:true,session:true,top:false,strength:false,score:false};
-var WB_DEF=[['overview','概況'],['news','ニュース要約'],['session','セッション'],['top','主要レート'],['strength','通貨強弱'],['score','本日の妙味']];
-function widgetURL(){var on=WB_DEF.filter(d=>WB[d[0]]).map(d=>d[0]);if(!on.length)on=['overview'];return './widget.html?b='+on.join(',');}
-function widgetBuilderHTML(){
-  return acc('#8ab4ff','ウィジェット','ホーム画面用の一目ビューを作成',
-    '<p class="note">表示したい項目を選ぶ→「開く↗」でプレビュー→ブラウザのメニューから<b>ホーム画面に追加</b>（Galaxyは Chrome右上 ⋮ →「ホーム画面に追加」）。<br>※PWAの仕様上これは“生きたウィジェット”ではなく<b>1タップで開くコンパクト表示</b>です。常時表示の本物ウィジェットが必要なら、無料アプリ <b>KWGT</b> で下のJSONを読む方法があります（任意）。</p>'+
-    '<div class="wbuild" id="wbChips"></div>'+
-    '<div class="wlink"><span class="wurl" id="wbUrl"></span><a class="wbtn" id="wbOpen" target="_blank" rel="noopener">開く ↗</a></div>'+
-    '<p class="note" style="margin-top:9px">KWGT等で読むデータ: <span class="wurl" style="display:inline-block;min-width:0" id="wbData"></span></p>'+
-    '<div class="wprev"><iframe id="wbPrev" title="preview"></iframe></div>',false);
-}
-function wbBind(){
-  var c=document.getElementById('wbChips');if(!c)return;
-  c.innerHTML=WB_DEF.map(d=>'<span class="wchip'+(WB[d[0]]?' on':'')+'" data-b="'+d[0]+'">'+d[1]+'</span>').join('');
-  c.querySelectorAll('.wchip').forEach(ch=>ch.onclick=function(){WB[this.dataset.b]=!WB[this.dataset.b];wbBind();});
-  var u=widgetURL(),abs=new URL(u,location.href).href;
-  document.getElementById('wbUrl').textContent=abs;
-  document.getElementById('wbOpen').href=u;
-  var dataEl=document.getElementById('wbData');if(dataEl)dataEl.textContent=new URL('./data.json',location.href).href;
-  var f=document.getElementById('wbPrev');if(f&&f.getAttribute('src')!==u)f.src=u;
-}
-
-function pairHTML(p,a,st,cv){
-  var cf=PC[p],pr=DATA.prices[cf.q]||{},pa=(a&&a.pairs&&a.pairs[p])||{};
-  st=st||pairSession(p,new Date()); cv=cv||autoConviction(p);
-  var dec=cf.dec||2;
-  var bias=pa.bias||'中立',bc=bias.indexOf('強')>=0?'bull':bias.indexOf('弱')>=0?'bear':'neut';
-  var chg=pr.chg!=null?((pr.chg>0?'+':'')+Number(pr.chg).toFixed(2)+'%'):(pr.derived?'算出':'');
-  var sub='<span class="'+(pr.chg>0?'up':pr.chg<0?'down':'mid')+'">'+(pr.price!=null?Number(pr.price).toFixed(dec):'—')+' '+chg+'</span>';
-  var sesTxt = st.active ? '⚡'+st.activeName : (st.next?st.next.name+' '+fmtDur(st.next.ms):'—');
-  var sesBadge='<span class="sesb'+(st.active?' on':'')+'" id="co_'+p+'" title="優位セッション／開場まで">'+sesTxt+'</span>';
-  var star=(st.active&&cv.mag>=0.45&&cv.dir!==0)?'<span class="star '+(cv.dir>0?'up':'down')+'" title="データ優位で取引妙味">★'+(cv.dir>0?'買':'売')+'</span>':'';
-  var sesNames=cf.ses.map(k=>SESS[k].jp).join('・');
-  var ptag='<span class="ptag">'+cf.tag+'｜流動性 約'+cf.liq+'%｜優位 '+sesNames+'</span>';
-  var rng=(pr.low!=null&&pr.high!=null&&pr.price!=null&&pr.high>pr.low)?('<p class="note">日中 '+pr.low+'–'+pr.high+(pr.ma50?' / 50日 '+Number(pr.ma50).toFixed(2)+'・200日 '+Number(pr.ma200).toFixed(2):'')+'</p>'):(pr.derived?'<p class="note">合成値（'+cf.base+'×'+(cf.quote||'')+'系）。MAは構成ペア参照。</p>':'');
-  var body=ptag+rng+
-    (pa.trend?'<h4>相場観・トレンド</h4><p>'+pa.trend+'</p>':'')+
-    (pa.news?'<h4>関連ニュース（統合）</h4><p>'+pa.news+'</p>':'')+
-    (pa.strategy?'<h4>テクニカル戦略</h4><p>'+pa.strategy+'</p>':'')+
-    (pa.levels?'<h4>警戒価格帯</h4><p>'+pa.levels+'</p>':'')+
-    (pa.cotRead?'<h4>大口×個人</h4><p>'+pa.cotRead+'</p>':'')+
-    (pa.risk?'<h4>リスク</h4><p>'+pa.risk+'</p>':'')+
-    (!pa.trend?'<p class="q">分析未生成（数値はヘッダ参照）。</p>':'');
-  var sumExtra=star+sesBadge+'<span class="bp '+bc+'">'+bias+'</span>';
-  return '<details class="acc" style="--accent:'+cf.c+'"><summary class="sum"><span class="dot"></span><span class="ttl">'+p+' <small>'+cf.n+'</small></span><span class="sub">'+sub+'</span>'+sumExtra+'<span class="chev">▸</span></summary><div class="inner">'+body+'</div></details>';
-}
-
-/* ---------- scorecard (auto factors from data) ---------- */
-var SC={cur:'XAUUSD',dir:1,man:{}};
-PAIRS.forEach(p=>SC.man[p]={});
-var SCMAN=[{id:'wave',k:'第3波',w:2.5},{id:'bos',k:'構造順',w:2},{id:'ote',k:'OTE/Fib',w:1.5},{id:'vwap',k:'VWAP順',w:1},{id:'cci',k:'CCIヴィト―なし',w:1},{id:'rr',k:'RR≥2',w:0,gate:true}];
-function strengthMap(){var m={};(DATA.strength||[]).forEach(x=>m[x.ccy]=x.score);return m;}
+/* ================= confluence math (unchanged logic) ================= */
+function strengthMap(){var m={};((DATA&&DATA.strength)||[]).forEach(function(x){m[x.ccy]=x.score;});return m;}
 function autoFactors(p){
-  var cf=PC[p],pr=DATA.prices[cf.q]||{},sm=strengthMap(),cot=DATA.cot||{},ret=(DATA.analysis&&DATA.analysis.retail&&DATA.analysis.retail[p])||{};
-  var F=[];
-  // HTF
-  var htf=0,note='—';
-  if(pr.price!=null&&pr.ma50&&pr.ma200){ if(pr.price>pr.ma50&&pr.price>pr.ma200){htf=1;note='MA上＝上昇';} else if(pr.price<pr.ma50&&pr.price<pr.ma200){htf=-1;note='MA下＝下降';} else{htf=0;note='MA混在';} }
+  var cf=PC[p],pr=(DATA.prices&&DATA.prices[cf.q])||{},sm=strengthMap(),cot=DATA.cot||{},ret=(DATA.analysis&&DATA.analysis.retail&&DATA.analysis.retail[p])||{};
+  var F=[];var htf=0,note='—';
+  if(pr.price!=null&&pr.ma50&&pr.ma200){if(pr.price>pr.ma50&&pr.price>pr.ma200){htf=1;note='MA上＝上昇';}else if(pr.price<pr.ma50&&pr.price<pr.ma200){htf=-1;note='MA下＝下降';}else{htf=0;note='MA混在';}}
   else note='MA無し(算出値)';
   F.push({k:'HTF移動平均',w:3,sign:htf,note:note});
-  // strength
   var st=0,sn='';
-  if(p==='XAUUSD'){ st=sgn(-(sm.USD||0)); sn='USD '+(sm.USD>0?'強→金逆風':'弱→金支持'); }
-  else { var diff=(sm[cf.base]||0)-(sm[cf.quote]||0); st=sgn(diff); sn=cf.base+(diff>0?'>':'<')+cf.quote; }
+  if(p==='XAUUSD'){st=sgn(-(sm.USD||0));sn='USD '+((sm.USD||0)>0?'強→金逆風':'弱→金支持');}
+  else{var diff=(sm[cf.base]||0)-(sm[cf.quote]||0);st=sgn(diff);sn=cf.base+(diff>0?'>':'<')+cf.quote;}
   F.push({k:'通貨強弱',w:2,sign:st,note:sn});
-  // COT
   var cs=0,cn='';
-  if(p==='USDJPY'){ var j=cot.JPY; if(j){cs=sgn(-j.net);cn='円'+(j.net<0?'売越→USDJPY支持':'買越');} }
-  else if(p==='EURJPY'){ var e=cot.EUR,jj=cot.JPY; if(e&&jj){cs=sgn(sgn(e.net)+(-sgn(jj.net)));cn='EUR/円建玉から';} }
-  else if(p==='GBPJPY'){ var g=cot.GBP,j2=cot.JPY; if(g&&j2){cs=sgn(sgn(g.net)+(-sgn(j2.net)));cn='GBP/円建玉から';} }
-  else if(p==='USDCAD'){ var cc=cot.CAD; if(cc){cs=sgn(-cc.net);cn='加ドル'+(cc.net<0?'売越→USDCAD支持':'買越→USDCAD重い');} }
-  else { var c=cot[cf.cot]; if(c){cs=sgn(c.net);cn='ネット'+(c.net>0?'買越':'売越')+' '+fmtN(c.net);} }
+  if(p==='USDJPY'){var j=cot.JPY;if(j){cs=sgn(-j.net);cn='円'+(j.net<0?'売越→USDJPY支持':'買越');}}
+  else if(p==='EURJPY'){var e=cot.EUR,jj=cot.JPY;if(e&&jj){cs=sgn(sgn(e.net)-sgn(jj.net));cn='EUR/円建玉から';}}
+  else if(p==='GBPJPY'){var g=cot.GBP,j2=cot.JPY;if(g&&j2){cs=sgn(sgn(g.net)-sgn(j2.net));cn='GBP/円建玉から';}}
+  else if(p==='USDCAD'){var cc=cot.CAD;if(cc){cs=sgn(-cc.net);cn='加ドル'+(cc.net<0?'売越→USDCAD支持':'買越→USDCAD重い');}}
+  else{var c=cot[cf.cot];if(c){cs=sgn(c.net);cn='ネット'+(c.net>0?'買越':'売越')+' '+fmtN(c.net);}}
   F.push({k:'大口COT',w:2,sign:cs,note:cn});
-  // retail contrarian
   var rs=0,rn='要確認';
-  if(ret.s!=null){ rs=ret.s>52?1:ret.s<48?-1:0; rn='個人S'+ret.s+'→逆張り'+(rs>0?'買い':'売り')+'寄り'; }
+  if(ret.s!=null){rs=ret.s>52?1:ret.s<48?-1:0;rn='個人S'+ret.s+'→逆張り'+(rs>0?'買い':rs<0?'売り':'中立')+'寄り';}
   F.push({k:'個人(逆張り)',w:1.5,sign:rs,note:rn});
   return F;
 }
-function scTabs(){document.getElementById('scTabs').innerHTML=PAIRS.map(p=>'<span class="sc-tab'+(p===SC.cur?' on':'')+'" data-p="'+p+'">'+p+'</span>').join('');document.querySelectorAll('.sc-tab').forEach(t=>t.onclick=function(){SC.cur=this.dataset.p;scRender();});}
+function autoConv(p){var F=autoFactors(p),pos=0,neg=0,tot=0;F.forEach(function(f){tot+=f.w;if(f.sign>0)pos+=f.w;else if(f.sign<0)neg+=f.w;});if(!tot)return{dir:0,mag:0};var net=(pos-neg)/tot;return{dir:net>0?1:net<0?-1:0,mag:Math.abs(net)};}
+
+/* ================= state ================= */
+var DATA=null, OFFLINE=false, LASTLOAD=0;
+var UI={tab:'today', sheet:null};
+var SC={cur:'XAUUSD',dir:1,man:{}};
+PAIRS.forEach(function(p){SC.man[p]={};});
+var SCMAN=[{id:'wave',k:'第3波',w:2.5},{id:'bos',k:'構造順',w:2},{id:'ote',k:'OTE/Fib',w:1.5},{id:'vwap',k:'VWAP順',w:1},{id:'cci',k:'CCIヴィトーなし',w:1},{id:'rr',k:'RR≥2',w:0,gate:true}];
+var WB={overview:true,news:true,session:true,top:false,strength:false,score:false};
+var WB_DEF=[['overview','概況'],['news','ニュース要約'],['session','セッション'],['top','主要レート'],['strength','通貨強弱'],['score','本日の妙味']];
+
+/* ================= sparkline ================= */
+function drawSpark(cv,arr,opts){
+  opts=opts||{};
+  var w=cv.clientWidth,h=cv.clientHeight;if(!w||!h)return;
+  var dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=w*dpr;cv.height=h*dpr;
+  var g=cv.getContext('2d');g.scale(dpr,dpr);g.clearRect(0,0,w,h);
+  var css=getComputedStyle(document.body);
+  var cLong=css.getPropertyValue('--long').trim(),cShort=css.getPropertyValue('--short').trim(),cMut=css.getPropertyValue('--mut2').trim(),cSeam=css.getPropertyValue('--seam2').trim();
+  if(!arr||arr.length<2){g.strokeStyle=cSeam;g.setLineDash([3,4]);g.beginPath();g.moveTo(4,h/2);g.lineTo(w-4,h/2);g.stroke();g.setLineDash([]);g.fillStyle=cMut;g.font='8px JetBrains Mono';g.fillText('30D —',6,h/2-5);return;}
+  var refs=(opts.refs||[]).filter(function(r){return r&&isFinite(r.v);});
+  var lo=Math.min.apply(null,arr),hi=Math.max.apply(null,arr);
+  refs.forEach(function(r){lo=Math.min(lo,r.v);hi=Math.max(hi,r.v);});
+  if(hi===lo){hi+=1e-9;}
+  var padT=opts.big?12:6,padB=opts.big?8:5,padL=4,padR=opts.big?40:6;
+  var X=function(i){return padL+(w-padL-padR)*i/(arr.length-1);};
+  var Y=function(v){return padT+(h-padT-padB)*(1-(v-lo)/(hi-lo));};
+  var upTrend=arr[arr.length-1]>=arr[0];var col=upTrend?cLong:cShort;
+  // refs (MA lines)
+  refs.forEach(function(r){var y=Y(r.v);g.strokeStyle=cSeam;g.setLineDash([4,4]);g.beginPath();g.moveTo(padL,y);g.lineTo(w-padR+(opts.big?2:0),y);g.stroke();g.setLineDash([]);
+    if(opts.big){g.fillStyle=cMut;g.font='8.5px JetBrains Mono';g.fillText(r.label,w-padR+5,y+3);}});
+  function paint(n){
+    g.clearRect(0,0,w,h);
+    refs.forEach(function(r){var y=Y(r.v);g.strokeStyle=cSeam;g.setLineDash([4,4]);g.beginPath();g.moveTo(padL,y);g.lineTo(w-padR+(opts.big?2:0),y);g.stroke();g.setLineDash([]);
+      if(opts.big){g.fillStyle=cMut;g.font='8.5px JetBrains Mono';g.fillText(r.label,w-padR+5,y+3);}});
+    var m=Math.max(2,Math.round(arr.length*n));
+    g.beginPath();g.moveTo(X(0),Y(arr[0]));
+    for(var i=1;i<m;i++)g.lineTo(X(i),Y(arr[i]));
+    var lastX=X(m-1),lastY=Y(arr[m-1]);
+    g.lineTo(lastX,h-padB+3);g.lineTo(X(0),h-padB+3);g.closePath();
+    g.globalAlpha=.14;g.fillStyle=col;g.fill();g.globalAlpha=1;
+    g.beginPath();g.moveTo(X(0),Y(arr[0]));
+    for(var j=1;j<m;j++)g.lineTo(X(j),Y(arr[j]));
+    g.strokeStyle=col;g.lineWidth=opts.big?2:1.6;g.lineJoin='round';g.stroke();
+    g.beginPath();g.arc(lastX,lastY,opts.big?3:2.4,0,7);g.fillStyle=col;g.fill();
+    if(opts.big){g.fillStyle=cMut;g.font='8.5px JetBrains Mono';g.fillText('30D',padL+1,padT-3);}
+  }
+  if(RM){paint(1);return;}
+  var t0=performance.now(),dur=480;
+  (function step(t){var n=Math.min(1,(t-t0)/dur);paint(n);if(n<1)requestAnimationFrame(step);})(t0);
+}
+function drawPaneSparks(root){
+  $$('.sparkwrap canvas',root).forEach(function(cv){
+    var p=cv.getAttribute('data-spark');var arr=DATA&&DATA.spark&&DATA.spark[PC[p].q==='%5EGSPC'?'GSPC':PC[p].q]||DATA&&DATA.spark&&DATA.spark[p];
+    if(!arr&&DATA&&DATA.spark)arr=DATA.spark[PC[p].q]||DATA.spark[p];
+    drawSpark(cv,arr,{});
+  });
+}
+
+/* ================= count-up ================= */
+function countUp(el,target,dec){
+  if(RM||target==null||isNaN(target)){el.textContent=target==null?'—':Number(target).toFixed(dec);return;}
+  var t0=performance.now(),dur=600,from=target*0.985;
+  (function s(t){var n=Math.min(1,(t-t0)/dur);var v=from+(target-from)*(1-Math.pow(1-n,3));el.textContent=v.toFixed(dec);if(n<1)requestAnimationFrame(s);})(t0);
+}
+
+/* ================= renderers ================= */
+function tkHTML(k,obj,dec){
+  if(!obj)return'';
+  var c=obj.chg>0?'up':obj.chg<0?'down':'mid';
+  var dv=obj.derived?'算出':(obj.chg==null?'':(obj.chg>0?'+':'')+Number(obj.chg).toFixed(2)+'%');
+  return '<div class="tk"><div class="k">'+k+'</div><div class="p" data-cu="'+(obj.price!=null?obj.price:'')+'" data-dec="'+dec+'">'+(obj.price!=null?Number(obj.price).toFixed(dec):'—')+'</div><div class="d '+c+'">'+dv+'</div></div>';
+}
+function tickerHTML(){
+  var p=DATA.prices||{},y=DATA.yields||{};
+  var h=tkHTML('USDJPY',p.USDJPY,2)+tkHTML('EURUSD',p.EURUSD,4)+tkHTML('GBPUSD',p.GBPUSD,4)+tkHTML('AUDUSD',p.AUDUSD,4)+tkHTML('USDCAD',p.USDCAD,4)+tkHTML('EURJPY',p.EURJPY,2)+tkHTML('GBPJPY',p.GBPJPY,2)+tkHTML('GOLD',p.GCUSD,1)+tkHTML('S&amp;P500',p.GSPC,0);
+  if(y.y10!=null)h+='<div class="tk"><div class="k">US10Y</div><div class="p">'+y.y10+'%</div><div class="d mid">'+(y.y2!=null?'2Y '+y.y2+'%':'')+'</div></div>';
+  return '<div class="rail2">'+h+'</div>';
+}
+function railHTML(){
+  var order=['SYD','TOK','LDN','NY'],now=new Date();
+  var chs=order.map(function(k){
+    var s=SESS[k],pr=tzParts(s.tz,now),wknd=(pr.weekday==='Sat'||pr.weekday==='Sun');
+    var off=tzOffMin(s.tz,now);
+    var open=((s.o*60-off)%1440+1440)%1440, close=open+(s.c-s.o)*60;
+    var segs=[];
+    if(close<=1440)segs.push([open,close]);else{segs.push([open,1440]);segs.push([0,close-1440]);}
+    var segHTML=segs.map(function(sg){return '<span class="seg" style="left:'+(sg[0]/14.4)+'%;width:'+((sg[1]-sg[0])/14.4)+'%"></span>';}).join('');
+    var live=sesActive(k,now);
+    return '<div class="ch'+(live?' live':'')+(wknd?' closed':'')+'" data-ch="'+k+'"><span class="nm">'+k+(wknd?'・休場':'')+'</span>'+segHTML+'</div>';
+  }).join('');
+  var scale='<div class="scale"><span>0</span><span>3</span><span>6</span><span>9</span><span>12</span><span>15</span><span>18</span><span>21</span><span>24</span></div>';
+  return '<div class="rail">'+scale+'<div class="railbox" id="railbox">'+chs+'<span class="ph" id="ph"></span></div><div class="legend"><span>UTC 24h ─ 金の帯＝各市場の取引時間</span><span id="railNote"></span></div></div>';
+}
+function focusHTML(){
+  var now=new Date();
+  var ranked=PAIRS.map(function(p){var st=pairSession(p,now);return{p:p,st:st,cv:autoConv(p),liq:PC[p].liq};});
+  var act=ranked.filter(function(r){return r.st.active;}).sort(function(x,y){return (y.cv.mag-x.cv.mag)||(y.liq-x.liq);});
+  var list=act.length?act:ranked.sort(function(x,y){return y.cv.mag-x.cv.mag;}).slice(0,4);
+  var cards=list.map(function(r){
+    var cf=PC[r.p],pr=(DATA.prices&&DATA.prices[cf.q])||{};
+    var pa=(DATA.analysis&&DATA.analysis.pairs&&DATA.analysis.pairs[r.p])||{};
+    var bias=(pa.bias||'中立').replace(/（.*?）/g,'');
+    var bc=bias.indexOf('強')>=0?'bull':bias.indexOf('弱')>=0?'bear':'neut';
+    var star=(r.st.active&&r.cv.mag>=0.45&&r.cv.dir!==0)?'<span class="star '+(r.cv.dir>0?'up':'down')+'">★'+(r.cv.dir>0?'買':'売')+'</span>':'';
+    return '<button class="fc" data-open="'+r.p+'" style="--pc:'+cf.c+'">'+
+      '<div class="sy">'+r.p+'</div>'+
+      '<div class="pr '+(pr.chg>0?'up':pr.chg<0?'down':'mid')+'">'+(pr.price!=null?Number(pr.price).toFixed(cf.dec):'—')+'</div>'+
+      '<div class="rw"><span class="bp '+bc+'">'+esc(bias)+'</span>'+star+'</div>'+
+      '<div class="rw"><span class="sesb'+(r.st.active?' on':'')+'" data-co="'+r.p+'">'+sesBadgeTxt(r.p,now)+'</span></div></button>';
+  }).join('');
+  return '<div class="card"><div class="chead"><span class="tag">Focus</span><span class="jp">本日の妙味</span><span class="r">'+(act.length?'取引時間中':'参考')+'</span></div><div class="fstrip">'+cards+'</div><p class="note" style="margin-top:8px">⚡＝優位セッション中／★＝データ合致で妙味。タップで詳細。</p></div>';
+}
+function renderToday(){
+  var a=(DATA&&DATA.analysis)||{};
+  var now=new Date();
+  var dstr=now.toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+  var H='';
+  H+='<div class="card hero">'+
+     '<div class="date">'+dstr+' ・ UTC <span id="utc2" class="mono">--:--</span></div>'+
+     '<div class="cdrow"><div class="big mono" id="heroCd">--:--:--</div><div class="lab" id="heroLab">—</div></div>'+
+     '<div class="chips"><span class="chip">米CPIまで <b class="mono" id="cpiCd">--</b> <span style="opacity:.7">水21:30 JST</span></span></div>'+
+     railHTML()+'</div>';
+  H+=tickerHTML();
+  H+='<div class="card"><div class="chead"><span class="tag">Brief</span><span class="jp">本日の概況</span></div><p class="body">'+esc(a.overview||'分析未生成。数値は上のティッカーを参照。')+'</p></div>';
+  H+=focusHTML();
+  var p=DATA.prices||{},y=DATA.yields||{};
+  function mi(n,o,dec){if(!o)return'';var c=o.chg<0?'down':'up';return '<div class="mi"><span class="n">'+n+'</span><span class="v">'+(o.price!=null?Number(o.price).toFixed(dec):'—')+'</span><span class="c '+c+'">'+(o.chg!=null?(o.chg>0?'+':'')+Number(o.chg).toFixed(2)+'%':'')+'</span></div>';}
+  H+='<div class="card"><div class="chead"><span class="tag">Macro</span><span class="jp">リスク・マクロ</span></div>'+
+     '<div class="macg">'+mi('S&amp;P500',p.GSPC,0)+mi('GOLD',p.GCUSD,1)+
+     '<div class="mi"><span class="n">US 2Y</span><span class="v">'+(y.y2!=null?y.y2+'%':'—')+'</span></div>'+
+     '<div class="mi"><span class="n">US 10Y</span><span class="v">'+(y.y10!=null?y.y10+'%':'—')+'</span></div></div>'+
+     '<p class="body">'+esc(a.riskMacro||'')+'</p></div>';
+  H+='<div class="card"><div class="chead"><span class="tag">Scenario</span><span class="jp">シナリオ</span></div>'+
+     '<div class="week"><div class="ev"><b>水</b> 米CPI★</div><div class="ev"><b>木</b> ECB・PPI</div><div class="ev"><b>金</b> 独CPI・英GDP</div></div>'+
+     '<p class="body">'+esc(a.scenario||'')+'</p></div>';
+  $('#p-today').innerHTML=H;
+  bindOpeners($('#p-today'));
+  if(!RM)$$('.tk .p[data-cu]',$('#p-today')).forEach(function(el){var v=parseFloat(el.getAttribute('data-cu'));var d=+el.getAttribute('data-dec');if(isFinite(v))countUp(el,v,d);});
+}
+function pairCard(p,st,cv){
+  var cf=PC[p],pr=(DATA.prices&&DATA.prices[cf.q])||{};
+  var pa=(DATA.analysis&&DATA.analysis.pairs&&DATA.analysis.pairs[p])||{};
+  var bias=pa.bias||'中立',bc=bias.indexOf('強')>=0?'bull':bias.indexOf('弱')>=0?'bear':'neut';
+  var chg=pr.chg!=null?((pr.chg>0?'+':'')+Number(pr.chg).toFixed(2)+'%'):(pr.derived?'算出':'');
+  var star=(st.active&&cv.mag>=0.45&&cv.dir!==0)?'<span class="star '+(cv.dir>0?'up':'down')+'">★'+(cv.dir>0?'買':'売')+'</span>':'';
+  var rng='';
+  if(pr.low!=null&&pr.high!=null&&pr.price!=null&&pr.high>pr.low){
+    var pos=Math.min(100,Math.max(0,(pr.price-pr.low)/(pr.high-pr.low)*100));
+    rng='<div class="rng"><div class="lbl"><span>安 '+pr.low+'</span><span>日中レンジ</span><span>高 '+pr.high+'</span></div>'+
+        '<div class="bar"><i style="left:calc('+pos.toFixed(1)+'% - 1px)"></i></div></div>';
+  }
+  var ma='';
+  if(pr.ma50&&pr.price!=null)ma+='<span class="machip '+(pr.price>pr.ma50?'a':'b')+'">MA50 '+(pr.price>pr.ma50?'上':'下')+'</span>';
+  if(pr.ma200&&pr.price!=null)ma+='<span class="machip '+(pr.price>pr.ma200?'a':'b')+'">MA200 '+(pr.price>pr.ma200?'上':'下')+'</span>';
+  return '<button class="pcard" data-open="'+p+'" style="--pc:'+cf.c+'">'+
+    '<div class="pr1"><span class="sy">'+p+'</span><span class="nm">'+cf.n+'</span>'+
+    '<span class="r">'+star+'<span class="sesb'+(st.active?' on':'')+'" data-co="'+p+'">'+sesBadgeTxt(p,new Date())+'</span><span class="bp '+bc+'">'+esc(bias.replace(/（.*?）/g,''))+'</span></span></div>'+
+    '<div class="pr2"><span class="px">'+(pr.price!=null?Number(pr.price).toFixed(cf.dec):'—')+'</span><span class="chg '+(pr.chg>0?'up':pr.chg<0?'down':'mid')+'">'+chg+'</span></div>'+
+    '<div class="sparkwrap"><canvas data-spark="'+p+'"></canvas></div>'+rng+
+    '<div class="pr4">'+ma+'</div>'+
+    '<div class="ptag">'+cf.tag+'｜流動性 約'+cf.liq+'%｜優位 '+cf.ses.map(function(k){return SESS[k].jp;}).join('・')+'</div>'+
+    '</button>';
+}
+function renderPairs(){
+  var now=new Date();
+  var ranked=PAIRS.map(function(p){var st=pairSession(p,now);return{p:p,st:st,cv:autoConv(p),liq:PC[p].liq};});
+  ranked.sort(function(x,y){return (y.st.active-x.st.active)||(y.liq-x.liq);});
+  var act=ranked.filter(function(r){return r.st.active;}),ina=ranked.filter(function(r){return !r.st.active;});
+  var H='<div class="ptitle"><h2>通貨ペア</h2><span class="en">PAIRS</span><span class="r">タップで詳細</span></div>';
+  if(act.length){
+    H+='<div class="grouphd on">⚡ 時間帯優位（取引時間中）</div>';act.forEach(function(r){H+=pairCard(r.p,r.st,r.cv);});
+    H+='<div class="grouphd">その他（参考）</div>';ina.forEach(function(r){H+=pairCard(r.p,r.st,r.cv);});
+  }else ranked.forEach(function(r){H+=pairCard(r.p,r.st,r.cv);});
+  $('#p-pairs').innerHTML=H;
+  bindOpeners($('#p-pairs'));
+  drawPaneSparks($('#p-pairs'));
+}
+function divBarRow(label,sign,wpct,valHTML,wide){
+  var fill='<span class="f '+(sign>0?'pos':'neg')+'" style="width:'+Math.min(100,wpct)+'%"></span>';
+  return '<div class="cs"><span class="cl">'+label+'</span><div class="ct"><div class="h l">'+(sign<0?fill:'')+'</div><div class="m"></div><div class="h">'+(sign>0?fill:'')+'</div></div><span class="'+(wide?'cvw':'cv')+'">'+valHTML+'</span></div>';
+}
+function renderFlow(){
+  var a=(DATA&&DATA.analysis)||{};
+  var H='<div class="ptitle"><h2>需給・ポジション</h2><span class="en">FLOW</span></div>';
+  var s=DATA.strength||[];
+  if(s.length){
+    var mx=Math.max.apply(null,s.map(function(x){return Math.abs(x.score);}))||1;
+    var bars=s.map(function(x){var c=x.score>0?'var(--long)':x.score<0?'var(--short)':'var(--flat)';
+      return divBarRow(x.ccy,sgn(x.score),Math.abs(x.score)/mx*100,'<b style="color:'+c+'">'+(x.score>0?'+':'')+x.score+'</b>');}).join('');
+    H+='<div class="card"><div class="chead"><span class="tag">Strength</span><span class="jp">通貨強弱</span><span class="r">'+s[0].ccy+'最強/'+s[s.length-1].ccy+'最弱</span></div>'+
+       '<p class="note">対ドル日次%から算出。右=強い/左=弱い ［<span class="src">FMP</span>］</p>'+bars+
+       (a.strengthRead?'<p class="body" style="margin-top:8px">'+esc(a.strengthRead)+'</p>':'')+'</div>';
+  }
+  var cot=DATA.cot||{};
+  var order=[['GOLD','XAUUSD'],['EUR','EURUSD'],['JPY','USDJPY'],['GBP','GBPUSD'],['AUD','AUDUSD'],['CAD','USDCAD']];
+  var quoteCcy={JPY:1,CAD:1};
+  var mx2=Math.max.apply(null,Object.keys(cot).map(function(k){return Math.abs(cot[k].net||0);}))||1;
+  var cotBars=order.map(function(o){var c=cot[o[0]];if(!c)return'';
+    return divBarRow(o[0],sgn(c.net),Math.abs(c.net)/mx2*100,(c.net>0?'+':'')+fmtN(c.net)+'<br><small>'+(c.chg!=null?((c.chg>0?'+':'')+fmtN(c.chg)):'')+'</small>',true);}).join('');
+  var rows=order.map(function(o){var c=cot[o[0]];if(!c)return'';var pr=o[1];
+    var ret=(a.retail&&a.retail[pr])||{};
+    var bullPair=quoteCcy[o[0]]?c.net<0:c.net>0;
+    var cotp='<span class="'+(c.net>0?'up':'down')+'">'+(c.net>0?'買越':'売越')+' '+fmtN(Math.abs(c.net))+'</span>'+(quoteCcy[o[0]]?'<br><small>'+pr+(bullPair?'↑寄り':'↓寄り')+'</small>':'');
+    var sl='';
+    if(ret.s!=null){var l=ret.l!=null?ret.l:(100-ret.s);
+      sl='<span class="slbar"><span class="s" style="width:'+ret.s+'%"></span><span class="l" style="width:'+l+'%"></span></span><span class="slnum">S'+ret.s+'/L'+l+'</span>';}
+    else sl='<span class="slnum" style="flex:1;text-align:right">個人 要確認</span>';
+    var verdict;
+    if(ret.s!=null){var agree=(bullPair&&!(ret.s>50))||(!bullPair&&ret.s>50);verdict=agree?'<span class="vb o">一致</span>':'<span class="vb x">逆</span>';}
+    else verdict='<span class="vb n">'+(bullPair?'大口↑':'大口↓')+'</span>';
+    return '<div class="posrow"><span class="sy">'+pr+'</span><span class="cotp">'+cotp+'</span>'+sl+verdict+'</div>';
+  }).join('');
+  H+='<div class="card"><div class="chead"><span class="tag">COT</span><span class="jp">大口（投機筋ネット）</span><span class="r">'+(cot.GOLD&&cot.GOLD.date?cot.GOLD.date:'')+'</span></div>'+
+     '<p class="note">右=買越/左=売越。JPY/CADは相手通貨のためペア方向は逆 ［<span class="src">CFTC</span>］</p>'+cotBars+'</div>';
+  H+='<div class="card"><div class="chead"><span class="tag">Crowd</span><span class="jp">大口 × 個人</span></div>'+rows+
+     '<p class="note" style="margin-top:6px">個人S/L＝売り/買い比率 ［<span class="src">Myfxbook</span><span class="src">FXSSI</span>］</p>'+
+     (a.cotReading?'<p class="body" style="margin-top:8px">'+esc(a.cotReading)+'</p>':'')+'</div>';
+  $('#p-flow').innerHTML=H;
+}
+function cleanProse(t){
+  return String(t||'').split('\n').map(function(l){
+    l=l.replace(/^[#>\-\*\s]+/,'').replace(/\*\*/g,'').replace(/^---+$/,'').trim();return l;
+  }).filter(Boolean).join(' ');
+}
+function renderNews(){
+  var a=(DATA&&DATA.analysis)||{},b=a.bank||{};
+  var H='<div class="ptitle"><h2>銀行・ニュース</h2><span class="en">DESK NOTES</span><span class="r" id="newsFresh"></span></div>';
+  var sum=b.summary||'';
+  if(!sum&&DATA.news)sum=cleanProse(DATA.news).slice(0,220)+'…';
+  if(sum)H+='<div class="card"><div class="chead"><span class="tag">Digest</span><span class="jp">要約</span></div><div class="bsum">'+esc(sum)+'</div></div>';
+  if(b.banks&&b.banks.length){
+    var rows=b.banks.filter(function(x){return x&&(x.name||x.view);}).map(function(x){
+      return '<div class="bankrow"><span class="bankname">'+esc(x.name||'—')+'</span><span class="bankview">'+esc(x.view||'')+'</span></div>';}).join('');
+    H+='<div class="card"><div class="chead"><span class="tag">Views</span><span class="jp">各社ビュー</span></div>'+rows+'</div>';
+  }
+  var t='';
+  if(b.rangeUSDJPY||b.rangeEURJPY)t+='<div class="week" style="margin-bottom:11px">'+(b.rangeUSDJPY?'<div class="ev">USDJPY 予想 <b>'+esc(b.rangeUSDJPY)+'</b></div>':'')+(b.rangeEURJPY?'<div class="ev">EURJPY 予想 <b>'+esc(b.rangeEURJPY)+'</b></div>':'')+'</div>';
+  if(b.drivers)t+='<div class="topic dr">⚙ ドライバー</div><p class="body">'+esc(b.drivers)+'</p>';
+  if(b.intervention)t+='<div class="topic iv">⚠ 介入警戒</div><p class="body">'+esc(b.intervention)+'</p>';
+  if(b.risk)t+='<div class="topic rk">▲ リスク</div><p class="body">'+esc(b.risk)+'</p>';
+  if(t)H+='<div class="card"><div class="chead"><span class="tag">Topics</span><span class="jp">注目トピック</span></div>'+t+
+    '<p class="note" style="margin-top:9px">出所（長押しで元ページ）: <span class="src">InvestingLive</span><span class="src">みずほ</span><span class="src">SMBC</span><span class="src">MUFG</span><span class="src">Minkabu</span></p></div>';
+  if(!sum&&!t)H+='<div class="card"><p class="body" style="color:var(--mut)">未生成。ANTHROPIC_API_KEY設定（＋web検索）で次回更新から自動生成されます。</p></div>';
+  $('#p-news').innerHTML=H;
+  var nf=$('#newsFresh');if(nf&&DATA.freshness)nf.textContent=relTime(DATA.freshness.news||DATA.freshness.analysis);
+  bindSrc($('#p-news'));bindSrc($('#p-flow'));
+}
+function renderScore(){
+  var H='<div class="ptitle"><h2>セットアップ採点</h2><span class="en">CONFLUENCE</span></div>'+
+    '<div class="card">'+
+    '<div class="sc-tabs" id="scTabs"></div>'+
+    '<div class="sc-dir"><button id="scLong" class="long">▲ 買い</button><button id="scShort" class="short">▼ 売り</button></div>'+
+    '<div class="sc-gauge"><div class="sc-ring" id="scRing"><span class="pct" id="scPct">0%</span></div>'+
+    '<div style="flex:1;min-width:0"><div class="sc-tier disp" id="scTier">—</div><div class="sc-verdict" id="scVerdict"></div><div class="sc-flags" id="scFlags"></div></div></div>'+
+    '<div class="kicker">マクロ要因（自動・取得データ）</div><div id="scAuto"></div>'+
+    '<div class="kicker">チャート確認（タップで加点）</div><div id="scManual"></div>'+
+    '<p class="note" id="scNote" style="margin-top:8px"></p></div>';
+  $('#p-score').innerHTML=H;
+  $('#scLong').onclick=function(){SC.dir=1;scRender();};
+  $('#scShort').onclick=function(){SC.dir=-1;scRender();};
+  scRender();
+}
 function scRender(){
-  if(!document.getElementById('scTabs'))return;
-  scTabs();
-  document.getElementById('scLong').className='long'+(SC.dir===1?' on':'');
-  document.getElementById('scShort').className='short'+(SC.dir===-1?' on':'');
+  if(!$('#scTabs'))return;
+  $('#scTabs').innerHTML=PAIRS.map(function(p){return '<button class="sc-tab'+(p===SC.cur?' on':'')+'" data-p="'+p+'">'+p+'</button>';}).join('');
+  $$('.sc-tab').forEach(function(t){t.onclick=function(){SC.cur=this.getAttribute('data-p');scRender();};});
+  $('#scLong').className='long'+(SC.dir===1?' on':'');
+  $('#scShort').className='short'+(SC.dir===-1?' on':'');
   var F=autoFactors(SC.cur),dir=SC.dir,man=SC.man[SC.cur],sup=0,tot=0,html='';
-  F.forEach(function(f){tot+=f.w;var st=(f.sign===dir)?'sup':(f.sign===0?'nu':'ag');if(st==='sup')sup+=f.w;var ic=st==='sup'?'✓':st==='ag'?'✕':'–';html+='<div class="sc-f '+st+'"><span class="ic">'+ic+'</span><span class="fl">'+f.k+' <small>'+f.note+'</small></span><span class="fr">w'+f.w+'</span></div>';});
-  document.getElementById('scAuto').innerHTML=html;
-  document.getElementById('scManual').innerHTML=SCMAN.map(f=>'<span class="sc-chip'+(man[f.id]?' on':'')+(f.gate?' gate':'')+'" data-id="'+f.id+'">'+(man[f.id]?'✓ ':'')+f.k+(f.w?' (w'+f.w+')':'')+'</span>').join('');
-  document.querySelectorAll('.sc-chip').forEach(c=>c.onclick=function(){man[this.dataset.id]=!man[this.dataset.id];scRender();});
-  SCMAN.forEach(f=>{if(f.gate)return;tot+=f.w;if(man[f.id])sup+=f.w;});
+  F.forEach(function(f){tot+=f.w;var st=(f.sign===dir)?'sup':(f.sign===0?'nu':'ag');if(st==='sup')sup+=f.w;
+    var ic=st==='sup'?'✓':st==='ag'?'✕':'–';
+    html+='<div class="sc-f '+st+'"><span class="ic">'+ic+'</span><span class="fl">'+f.k+' <small>'+esc(f.note)+'</small></span><span class="fr">w'+f.w+'</span></div>';});
+  $('#scAuto').innerHTML=html;
+  $('#scManual').innerHTML=SCMAN.map(function(f){return '<button class="sc-chip'+(man[f.id]?' on':'')+(f.gate?' gate':'')+'" data-id="'+f.id+'">'+(man[f.id]?'✓ ':'')+f.k+(f.w?' (w'+f.w+')':'')+'</button>';}).join('');
+  $$('.sc-chip').forEach(function(c){c.onclick=function(){man[this.getAttribute('data-id')]=!man[this.getAttribute('data-id')];scRender();};});
+  SCMAN.forEach(function(f){if(f.gate)return;tot+=f.w;if(man[f.id])sup+=f.w;});
   var pct=Math.round(sup/tot*100),flags=[],cap=1,veto=false;
   var ps=pairSession(SC.cur,new Date()),inSes=ps.active;
   flags.push({t:inSes?'優位セッション中('+ps.activeName+')':'セッション優位外',ok:inSes});if(!inSes)cap=2;
-  var cm=(nextWed1230()-Date.now())/6e4; if(cm>0&&cm<30){flags.push({t:'CPI直前=回避',ok:false});veto=true;}
+  var cm=(nextWed1230()-Date.now())/6e4;if(cm>0&&cm<30){flags.push({t:'CPI直前=回避',ok:false});veto=true;}
   if(man.rr)flags.push({t:'RR≥2',ok:true});else{flags.push({t:'RR<2/未確認',ok:false});cap=Math.max(cap,2);}
-  var cotG=DATA.cot&&DATA.cot.GOLD,gpr=DATA.prices.GCUSD;
+  var cotG=DATA.cot&&DATA.cot.GOLD,gpr=DATA.prices&&DATA.prices.GCUSD;
   if(SC.cur==='XAUUSD'&&dir===1&&cotG&&cotG.net>120000&&gpr&&gpr.chg<0){flags.push({t:'COTロング過熱',ok:false});cap=Math.max(cap,2);}
-  var uj=DATA.prices.USDJPY; if(SC.cur==='USDJPY'&&dir===1&&uj&&uj.yearHigh&&uj.price>=uj.yearHigh-0.4){flags.push({t:'介入帯警戒',ok:false});cap=Math.max(cap,2);}
-  var tier;if(pct>=72)tier=1;else if(pct>=55)tier=2;else if(pct>=42)tier=3;else tier=0;if(tier>0)tier=Math.max(tier,cap);if(veto)tier=0;
+  var uj=DATA.prices&&DATA.prices.USDJPY;
+  if(SC.cur==='USDJPY'&&dir===1&&uj&&uj.yearHigh&&uj.price>=uj.yearHigh-0.4){flags.push({t:'介入帯警戒',ok:false});cap=Math.max(cap,2);}
+  var tier;if(pct>=72)tier=1;else if(pct>=55)tier=2;else if(pct>=42)tier=3;else tier=0;
+  if(tier>0)tier=Math.max(tier,cap);if(veto)tier=0;
   var tierTxt=['見送り','ティア1（フル）','ティア2（縮小）','ティア3（打診）'][tier];
-  var gc=dir===1?'var(--up)':'var(--down)',ring=document.getElementById('scRing');
-  ring.style.setProperty('--p',pct);ring.style.setProperty('--gc',gc);
-  document.getElementById('scPct').textContent=pct+'%';document.getElementById('scPct').style.color=gc;
-  var te=document.getElementById('scTier');te.textContent=tierTxt;te.style.color=tier===0?'var(--mid)':tier===1?'var(--up)':'var(--gold)';
-  document.getElementById('scVerdict').textContent=SC.cur+' '+(dir===1?'買い':'売り')+'：適合度 '+pct+'%';
-  document.getElementById('scFlags').innerHTML=flags.map(f=>'<span class="sc-flag'+(f.ok?' ok':'')+'">'+f.t+'</span>').join('');
-  document.getElementById('scNote').textContent='あなたのルール整理＝判断材料（売買助言ではありません）。チャート項目は5M/15Mで確認しタップ。';
+  var gc=dir===1?'var(--long)':'var(--short)';
+  var ring=$('#scRing');ring.style.setProperty('--p',pct);ring.style.setProperty('--gc',gc);
+  $('#scPct').textContent=pct+'%';$('#scPct').style.color=gc;
+  var te=$('#scTier');te.textContent=tierTxt;te.style.color=tier===0?'var(--flat)':tier===1?'var(--long)':'var(--gold)';
+  $('#scVerdict').textContent=SC.cur+' '+(dir===1?'買い':'売り')+'：適合度 '+pct+'%';
+  $('#scFlags').innerHTML=flags.map(function(f){return '<span class="sc-flag'+(f.ok?' ok':'')+'">'+f.t+'</span>';}).join('');
+  $('#scNote').textContent='あなたのルール整理＝判断材料（売買助言ではありません）。チャート項目は5M/15Mで確認しタップ。';
 }
-function scorecardHTML(){
-  return acc('#7ee0c0','セットアップ採点','コンフルエンス・スコア',
-    '<div class="sc-tabs" id="scTabs"></div><div class="sc-dir"><button id="scLong" class="long">▲ 買い</button><button id="scShort" class="short">▼ 売り</button></div>'+
-    '<div class="sc-gauge"><div class="sc-ring" id="scRing"><span class="pct" id="scPct">0%</span></div><div class="sc-meta"><div class="sc-tier" id="scTier">—</div><div class="sc-verdict" id="scVerdict"></div><div class="sc-flags" id="scFlags"></div></div></div>'+
-    '<div class="sc-sec-t">マクロ要因（自動・取得データ）</div><div id="scAuto"></div>'+
-    '<div class="sc-sec-t">チャート確認（タップで加点）</div><div id="scManual"></div><p class="note" id="scNote"></p>',true);
-}
-function initSC(){ var l=document.getElementById('scLong'),s=document.getElementById('scShort'); if(l)l.onclick=function(){SC.dir=1;scRender();}; if(s)s.onclick=function(){SC.dir=-1;scRender();}; scRender(); }
 
-/* ---------- source long-press ---------- */
-var SRC={'InvestingLive':'https://investinglive.com','みずほ':'https://www.mizuhobank.co.jp/market/index.html','SMBC':'https://www.smbc.co.jp/market/pdf/comment.pdf','MUFG':'https://www.mufgresearch.com/fx/','Myfxbook':'https://www.myfxbook.com/community/outlook','FXSSI':'https://fxssi.com/tools/current-ratio','Minkabu':'https://fx.minkabu.jp/news','CFTC・Tradingster':'https://www.tradingster.com/cot','FMP':'https://financialmodelingprep.com/'};
-function bindSrc(){
-  document.querySelectorAll('.src').forEach(function(el){
+/* ================= pair sheet ================= */
+function openPair(p){
+  UI.sheet=p;
+  var cf=PC[p],pr=(DATA.prices&&DATA.prices[cf.q])||{};
+  var pa=(DATA.analysis&&DATA.analysis.pairs&&DATA.analysis.pairs[p])||{};
+  $('#shSy').textContent=p;$('#shNm').textContent=cf.n;
+  var chg=pr.chg!=null?((pr.chg>0?'+':'')+Number(pr.chg).toFixed(2)+'%'):(pr.derived?'算出':'');
+  var cot=DATA.cot||{},ck=cf.cot,c=cot[ck];
+  var ret=(DATA.analysis&&DATA.analysis.retail&&DATA.analysis.retail[p])||{};
+  var chips='<span class="sesb" data-co="'+p+'">'+sesBadgeTxt(p,new Date())+'</span>';
+  if(c)chips+='<span class="chip">COT <b>'+(c.net>0?'+':'')+fmtN(c.net)+'</b></span>';
+  if(ret.s!=null)chips+='<span class="chip">個人 <b>S'+ret.s+'/L'+(ret.l!=null?ret.l:100-ret.s)+'</b></span>';
+  var yr='';
+  if(pr.yearLow!=null&&pr.yearHigh!=null&&pr.price!=null&&pr.yearHigh>pr.yearLow){
+    var ypos=Math.min(100,Math.max(0,(pr.price-pr.yearLow)/(pr.yearHigh-pr.yearLow)*100));
+    yr='<div class="rng" style="margin-top:10px"><div class="lbl"><span>年安 '+pr.yearLow+'</span><span>年初来レンジ</span><span>年高 '+pr.yearHigh+'</span></div><div class="bar"><i style="left:calc('+ypos.toFixed(1)+'% - 1px)"></i></div></div>';
+  }
+  var day='';
+  if(pr.low!=null&&pr.high!=null&&pr.price!=null&&pr.high>pr.low){
+    var pos=Math.min(100,Math.max(0,(pr.price-pr.low)/(pr.high-pr.low)*100));
+    day='<div class="rng" style="margin-top:10px"><div class="lbl"><span>安 '+pr.low+'</span><span>日中レンジ</span><span>高 '+pr.high+'</span></div><div class="bar"><i style="left:calc('+pos.toFixed(1)+'% - 1px)"></i></div></div>';
+  }
+  function sec(cls,icon,t,body){return body?'<div class="topic '+cls+'">'+icon+' '+t+'</div><p class="body">'+esc(body)+'</p>':'';}
+  var B='<div class="bigpx"><span class="px">'+(pr.price!=null?Number(pr.price).toFixed(cf.dec):'—')+'</span><span class="chg '+(pr.chg>0?'up':pr.chg<0?'down':'mid')+'">'+chg+'</span></div>'+
+    '<div class="chiprow">'+chips+'</div>'+
+    '<div class="bigchart"><canvas id="bigcv"></canvas></div>'+day+yr+
+    '<p class="note" style="margin-top:8px">'+cf.tag+'｜流動性 約'+cf.liq+'%｜優位 '+cf.ses.map(function(k){return SESS[k].jp;}).join('・')+(pr.derived?'｜合成値（MAは構成ペア参照）':'')+'</p>'+
+    sec('dr','◈','相場観・トレンド',pa.trend)+
+    sec('dr','◈','関連ニュース（統合）',pa.news)+
+    sec('iv','◎','テクニカル戦略',pa.strategy)+
+    sec('iv','◎','警戒価格帯',pa.levels)+
+    sec('rk','◍','大口×個人',pa.cotRead)+
+    sec('rk','▲','リスク',pa.risk)+
+    (!pa.trend?'<p class="body" style="color:var(--mut)">分析未生成（数値は上部参照）。</p>':'')+
+    '<button class="gotosc" data-gosc="'+p+'">この銘柄を採点する →</button>';
+  $('#shBody').innerHTML=B;
+  $('#shBody').scrollTop=0;
+  $('#scrim1').classList.add('on');$('#sheetPair').classList.add('on');
+  try{history.pushState({mmSheet:p},'');}catch(e){}
+  var arr=DATA&&DATA.spark&&(DATA.spark[cf.q]||DATA.spark[p]);
+  var refs=[];if(pr.ma50)refs.push({v:+pr.ma50,label:'MA50'});if(pr.ma200)refs.push({v:+pr.ma200,label:'MA200'});
+  requestAnimationFrame(function(){drawSpark($('#bigcv'),arr,{big:true,refs:refs});});
+  var go=$('#shBody [data-gosc]');if(go)go.onclick=function(){SC.cur=p;closeSheets();showTab('score');scRender();};
+  if(navigator.vibrate&&!RM)try{navigator.vibrate(6);}catch(e){}
+}
+function closeSheets(skipHist){
+  UI.sheet=null;
+  $('#scrim1').classList.remove('on');$('#sheetPair').classList.remove('on');
+  $('#scrim2').classList.remove('on');$('#sheetSet').classList.remove('on');
+  if(!skipHist&&history.state&&history.state.mmSheet){try{history.back();}catch(e){}}
+}
+window.addEventListener('popstate',function(){closeSheets(true);});
+function bindOpeners(root){$$('[data-open]',root).forEach(function(el){el.onclick=function(){openPair(this.getAttribute('data-open'));};});}
+
+/* ================= settings sheet ================= */
+function widgetURL(){var on=WB_DEF.filter(function(d){return WB[d[0]];}).map(function(d){return d[0];});if(!on.length)on=['overview'];return './widget.html?b='+on.join(',');}
+function openSet(){
+  var f=DATA&&DATA.freshness||{};
+  var order=[['prices','価格'],['spark','30日終値'],['yields','米金利'],['cot','COT'],['retail','個人(実測)'],['news','ニュース'],['analysis','AI分析']];
+  var fresh=order.map(function(o){return '<div class="freshrow"><span>'+o[1]+'</span><b>'+relTime(f[o[0]])+'</b></div>';}).join('');
+  var errs=(DATA&&DATA.errors&&DATA.errors.length)?'<div class="kicker">取得メモ</div><p class="note">'+esc(DATA.errors.join(' / '))+'</p>':'';
+  var dark=document.body.getAttribute('data-theme')!=='light';
+  var B='<div class="setrow"><div><div class="t">ダークテーマ</div><div class="d">ブリオン（暗）／ペーパー（明）</div></div>'+
+    '<button class="tgl r'+(dark?' on':'')+'" id="tglTheme" aria-label="テーマ切替"><i></i></button></div>'+
+    '<div class="setrow" style="display:block"><div class="t">ウィジェット（ホーム画面の一目ビュー）</div>'+
+    '<div class="d">項目を選ぶ→開く→ブラウザ⋮「ホーム画面に追加」。PWAの仕様上、常時表示型ではなく1タップで開くコンパクト表示です。常時表示が必要なら無料アプリKWGTで下記JSONを読めます。</div>'+
+    '<div class="wchips" id="wbChips"></div>'+
+    '<div class="wurl" id="wbUrl"></div><a class="wopen" id="wbOpen" target="_blank" rel="noopener">開く ↗</a>'+
+    '<div class="d" style="margin-top:9px">KWGT用データ: </div><div class="wurl" id="wbData"></div>'+
+    '<div class="wprev"><iframe id="wbPrev" title="widget preview"></iframe></div></div>'+
+    '<div class="setrow" style="display:block"><div class="t">データ鮮度</div>'+fresh+errs+'</div>'+
+    '<div class="setrow" style="display:block"><div class="t">情報源（長押しで元ページ）</div>'+
+    '<p class="note" style="margin-top:6px"><span class="src">FMP</span><span class="src">CFTC</span><span class="src">Myfxbook</span><span class="src">FXSSI</span><span class="src">SMBC</span><span class="src">みずほ</span><span class="src">MUFG</span><span class="src">Minkabu</span><span class="src">InvestingLive</span></p>'+
+    '<p class="note" style="margin-top:7px">サーバー側で3時間ごと取得→本アプリは描画のみ。本アプリは判断材料の整理であり売買助言ではありません。</p>'+
+    '<p class="note" style="margin-top:5px">MACRO MIXER · build 2</p></div>';
+  $('#setBody').innerHTML=B;
+  $('#tglTheme').onclick=function(){
+    var d=document.body.getAttribute('data-theme')==='dark';
+    document.body.setAttribute('data-theme',d?'light':'dark');
+    try{localStorage.setItem('mm-theme',d?'light':'dark');}catch(e){}
+    this.classList.toggle('on',!d);
+    renderAll();
+  };
+  wbBind();bindSrc($('#setBody'));
+  $('#scrim2').classList.add('on');$('#sheetSet').classList.add('on');
+  try{history.pushState({mmSheet:'set'},'');}catch(e){}
+}
+function wbBind(){
+  var c=$('#wbChips');if(!c)return;
+  c.innerHTML=WB_DEF.map(function(d){return '<button class="wchip'+(WB[d[0]]?' on':'')+'" data-b="'+d[0]+'">'+d[1]+'</button>';}).join('');
+  $$('.wchip',c.parentNode).forEach(function(ch){ch.onclick=function(){WB[this.getAttribute('data-b')]=!WB[this.getAttribute('data-b')];wbBind();};});
+  var u=widgetURL(),abs=new URL(u,location.href).href;
+  $('#wbUrl').textContent=abs;$('#wbOpen').href=u;
+  $('#wbData').textContent=new URL('./data.json',location.href).href;
+  var f=$('#wbPrev');if(f&&f.getAttribute('src')!==u)f.src=u;
+}
+
+/* ================= sources long-press ================= */
+function bindSrc(root){
+  $$('.src',root).forEach(function(el){
     var url=SRC[el.textContent.trim()];if(!url)return;el.title='長押しで出所へ';
-    var t;function start(){t=setTimeout(()=>window.open(url,'_blank','noopener'),420);}function cancel(){clearTimeout(t);}
-    el.addEventListener('pointerdown',start);el.addEventListener('pointerup',cancel);el.addEventListener('pointerleave',cancel);el.addEventListener('pointermove',cancel);el.addEventListener('contextmenu',e=>e.preventDefault());
+    var t;function start(){t=setTimeout(function(){window.open(url,'_blank','noopener');},420);}
+    function cancel(){clearTimeout(t);}
+    el.addEventListener('pointerdown',start);el.addEventListener('pointerup',cancel);
+    el.addEventListener('pointerleave',cancel);el.addEventListener('pointermove',cancel);
+    el.addEventListener('contextmenu',function(e){e.preventDefault();});
   });
 }
-function bindDetailsAnim(){}
 
+/* ================= router / dock ================= */
+function showTab(tab){
+  UI.tab=tab;
+  $$('.pane').forEach(function(p){p.classList.remove('on');});
+  var el=$('#p-'+tab);if(el)el.classList.add('on');
+  $$('.dk').forEach(function(d){d.classList.toggle('on',d.getAttribute('data-tab')===tab);});
+  if(location.hash!=='#'+tab){try{history.replaceState(null,'','#'+tab);}catch(e){}}
+  if(tab==='pairs'&&DATA)requestAnimationFrame(function(){drawPaneSparks($('#p-pairs'));});
+  window.scrollTo({top:0,behavior:RM?'auto':'smooth'});
+}
+$('#dock').addEventListener('click',function(e){
+  var b=e.target.closest('.dk');if(!b)return;
+  if(navigator.vibrate&&!RM)try{navigator.vibrate(5);}catch(err){}
+  showTab(b.getAttribute('data-tab'));
+});
+function route(){
+  var h=(location.hash||'#today').slice(1);
+  var m=h.match(/^pair\/(\w+)$/);
+  if(m&&PC[m[1]]){showTab('pairs');if(DATA)openPair(m[1]);return;}
+  if(['today','pairs','flow','news','score'].indexOf(h)<0)h='today';
+  showTab(h);
+}
+window.addEventListener('hashchange',route);
+
+/* ================= live tick ================= */
+function tick(){
+  var now=new Date();
+  var t=now.toISOString();
+  var u=$('#utc');if(u)u.textContent=t.slice(11,19)+'Z';
+  var u2=$('#utc2');if(u2)u2.textContent=t.slice(11,16);
+  // hero countdown: next session open among all
+  var order=['SYD','TOK','LDN','NY'],nextK=null,nextMs=null;
+  order.forEach(function(k){if(!sesActive(k,now)){var ms=msUntilOpen(k,now);if(ms!=null&&(nextMs==null||ms<nextMs)){nextMs=ms;nextK=k;}}});
+  var hc=$('#heroCd'),hl=$('#heroLab');
+  if(hc){
+    var anyOpen=order.some(function(k){return sesActive(k,now);});
+    if(nextK!=null&&!anyOpen){var s=Math.floor(nextMs/1000);hc.textContent=pad(Math.floor(s/3600))+':'+pad(Math.floor(s%3600/60))+':'+pad(s%60);hc.classList.remove('open');hl.textContent=SESS[nextK].jp+'開場まで';}
+    else if(nextK!=null){var s2=Math.floor(nextMs/1000);hc.textContent=pad(Math.floor(s2/3600))+':'+pad(Math.floor(s2%3600/60))+':'+pad(s2%60);hc.classList.remove('open');hl.textContent='次：'+SESS[nextK].jp+'開場（取引時間中）';}
+    else{hc.textContent='OPEN';hc.classList.add('open');hl.textContent='主要市場 取引時間中';}
+  }
+  // CPI chip
+  var cpi=nextWed1230()-now.getTime(),ce=$('#cpiCd');
+  if(ce){if(cpi<=0)ce.textContent='発表時間帯';else{var d=Math.floor(cpi/864e5),hh=Math.floor(cpi%864e5/36e5),mm=Math.floor(cpi%36e5/6e4);ce.textContent=d+'日'+pad(hh)+':'+pad(mm);}}
+  // rail playhead + channel live state
+  var ph=$('#ph');
+  if(ph){
+    var mins=now.getUTCHours()*60+now.getUTCMinutes()+now.getUTCSeconds()/60;
+    ph.style.left='calc('+(mins/14.4)+'% - 1px)';
+    order.forEach(function(k){var ch=document.querySelector('[data-ch="'+k+'"]');if(ch)ch.classList.toggle('live',sesActive(k,now));});
+    var rn=$('#railNote');if(rn){var openNames=order.filter(function(k){return sesActive(k,now);}).map(function(k){return SESS[k].jp;});rn.textContent=openNames.length?('▶ '+openNames.join('・')):'休場時間帯';}
+  }
+  // all session badges
+  $$('[data-co]').forEach(function(el){
+    var p=el.getAttribute('data-co');var st=pairSession(p,now);
+    el.classList.toggle('on',st.active);
+    el.textContent=st.active?('⚡'+st.activeName):(st.next?(st.next.name+' '+fmtDur(st.next.ms)):'—');
+  });
+}
+setInterval(tick,1000);
+
+/* ================= load ================= */
+function skel(){
+  ['#p-today','#p-pairs','#p-flow','#p-news','#p-score'].forEach(function(s){
+    $(s).innerHTML='<div class="sk" style="height:150px"></div><div class="sk"></div><div class="sk"></div><div class="sk" style="height:120px"></div>';
+  });
+}
+function renderAll(){
+  if(!DATA)return;
+  renderToday();renderPairs();renderFlow();renderNews();renderScore();
+  var up=new Date(DATA.updated);
+  var hrs=(Date.now()-up.getTime())/36e5;
+  var dot=$('#liveDot');dot.className='dotlive'+(OFFLINE?' dead':hrs>6?' stale':'');
+  $('#banner').innerHTML=(OFFLINE?'<div class="banner">オフライン表示（最終更新 '+up.toLocaleString('ja-JP')+'）。オンライン復帰で自動更新。</div>':'')+
+    (!OFFLINE&&hrs>6?'<div class="banner">⚠ 約'+Math.floor(hrs)+'時間前のデータ（ソース更新待ち）</div>':'');
+  $('#foot').innerHTML='最終更新 '+up.toLocaleString('ja-JP')+' ／ 3時間ごと自動更新（UTC 0·3·6·9·12·15·18·21時）<br>判断材料の整理であり売買助言ではありません。詳細・出所・鮮度は ⚙ 設定。';
+  if(UI.tab==='pairs')requestAnimationFrame(function(){drawPaneSparks($('#p-pairs'));});
+  tick();
+}
+async function load(manual){
+  var btn=$('#btnRefresh');btn.classList.add('spin');
+  var ctrl=new AbortController(),t=setTimeout(function(){ctrl.abort();},12000);
+  try{
+    var r=await fetch('./data.json?t='+Date.now(),{signal:ctrl.signal,cache:'no-store'});
+    clearTimeout(t);
+    var d=await r.json();
+    if(!r.ok||!d||!d.prices)throw new Error('bad');
+    DATA=d;OFFLINE=false;LASTLOAD=Date.now();renderAll();
+  }catch(e){
+    clearTimeout(t);
+    try{var c=await fetch('./data.json');DATA=await c.json();OFFLINE=true;LASTLOAD=Date.now();renderAll();}
+    catch(e2){if(!DATA)$('#p-today').innerHTML='<div class="card"><p class="body down">データ取得に失敗しました。通信環境を確認して ↻ を押してください。</p></div>';}
+  }
+  btn.classList.remove('spin');
+}
+$('#btnRefresh').onclick=function(){load(true);};
+$('#btnSet').onclick=openSet;
+$('#shX').onclick=function(){closeSheets();};
+$('#setX').onclick=function(){closeSheets();};
+$('#scrim1').onclick=function(){closeSheets();};
+$('#scrim2').onclick=function(){closeSheets();};
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='visible'&&Date.now()-LASTLOAD>15*60*1000)load();
+});
+
+/* theme restore */
+try{var th=localStorage.getItem('mm-theme');if(th)document.body.setAttribute('data-theme',th);}catch(e){}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(function(){});}
+
+skel();
+route();
 load();
-setInterval(load, 3*60*60*1000); // re-pull data.json every 3h while open
+setInterval(load,3*60*60*1000);
 </script>
 </body>
 </html>
