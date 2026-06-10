@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#080a0e" />
+<link rel="apple-touch-icon" href="./icon.svg" />
+<title>Trade Desk · Widget</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+:root{--bg:#080a0e;--panel:#14161d;--panel2:#1a1d26;--border:#272b35;--text:#e9ebf0;--muted:#888fa0;--gold:#e3b341;--up:#5fd08a;--down:#ff6f6f;--mid:#9aa0ac}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans-serif;padding:10px calc(10px + env(safe-area-inset-left)) calc(10px + env(safe-area-inset-bottom));min-height:100vh}
+.wg{background:linear-gradient(150deg,var(--panel),var(--panel2));border:1px solid var(--border);border-radius:16px;padding:12px 13px;margin-bottom:10px;position:relative;overflow:hidden}
+.wg::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--ac,var(--gold))}
+.lab{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px;margin-bottom:7px}
+.lab .ic{color:var(--ac,var(--gold));font-size:11px}
+.txt{font-size:12.6px;line-height:1.66}
+.muted{color:var(--muted)}
+.bank{display:flex;gap:8px;padding:5px 0;border-top:1px solid var(--border)}
+.bank .bn{flex:none;width:80px;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#56b6c2;font-weight:700;line-height:1.5}
+.bank .bv{flex:1;font-size:11.6px;line-height:1.5}
+.iv{margin-top:8px;font-size:11.8px;line-height:1.55;color:var(--text)}.iv b{color:var(--gold)}
+.ses{display:flex;gap:5px;margin-bottom:9px}
+.ses span{flex:1;text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;padding:5px 0;border:1px solid var(--border);border-radius:7px;color:var(--muted)}
+.ses span.on{color:#06140d;background:var(--up);border-color:var(--up);font-weight:700}
+.cd{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;letter-spacing:1px}
+.cdn{font-size:11px;color:var(--muted);margin-top:2px}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tile{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:8px}
+.tile .k{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)}
+.tile .p{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700}
+.tile .d{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600}
+.up{color:var(--up)}.down{color:var(--down)}.mid{color:var(--mid)}
+.srow{display:flex;align-items:center;gap:10px;margin:5px 0}
+.srow .nm{width:46px;font-family:'JetBrains Mono',monospace;font-weight:700}
+.srow .bar{flex:1;height:9px;background:var(--panel2);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.srow .bar i{display:block;height:100%}
+.srow .vv{width:50px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px}
+.pk{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--border);font-size:12px}
+.pk:first-of-type{border-top:0}
+.pk .sy{font-family:'JetBrains Mono',monospace;font-weight:700;width:64px}
+.pk .bz{font-size:10.5px;padding:2px 7px;border-radius:10px;flex:none}
+.pk .bz.bull{color:var(--up);border:1px solid color-mix(in srgb,var(--up) 45%,transparent)}
+.pk .bz.bear{color:var(--down);border:1px solid color-mix(in srgb,var(--down) 45%,transparent)}
+.pk .bz.neut{color:var(--mid);border:1px solid color-mix(in srgb,var(--mid) 40%,transparent)}
+.pk .fl{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--gold);margin-left:auto}
+.pk .star{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700}.pk .star.up{color:var(--up)}.pk .star.down{color:var(--down)}
+.foot{font-family:'JetBrains Mono',monospace;font-size:8.5px;color:var(--muted);text-align:center;margin-top:4px;line-height:1.5}
+.err{color:var(--down);font-size:12px}
+</style>
+</head>
+<body>
+<div id="root"><div class="wg"><div class="txt muted">読み込み中…</div></div></div>
+<div class="foot" id="foot"></div>
+
+<script>
+function pad(n){return String(n).padStart(2,'0');}
+function sgn(x){return x>0?1:x<0?-1:0;}
+function fmtN(n){return (n==null||isNaN(n))?'—':Number(n).toLocaleString('en-US');}
+function esc(s){return String(s==null?'':s).replace(/[<>&]/g,function(c){return c==='<'?'&lt;':c==='>'?'&gt;':'&amp;';});}
+var BLOCKS=(new URLSearchParams(location.search).get('b')||'overview,news,session').split(',').map(s=>s.trim()).filter(Boolean);
+
+var PC={
+  EURUSD:{n:'ユーロドル',q:'EURUSD',cot:'EUR',base:'EUR',quote:'USD',dec:4,liq:22.7,ses:['LDN','NY']},
+  USDJPY:{n:'ドル円',q:'USDJPY',cot:'JPY',base:'USD',quote:'JPY',dec:2,liq:13.5,ses:['TOK','LDN','NY']},
+  GBPUSD:{n:'ポンドドル',q:'GBPUSD',cot:'GBP',base:'GBP',quote:'USD',dec:4,liq:9.5,ses:['LDN','NY']},
+  XAUUSD:{n:'ゴールド',q:'GCUSD',cot:'GOLD',base:'gold',dec:1,liq:9,ses:['LDN','NY']},
+  USDCAD:{n:'米ドル/加',q:'USDCAD',cot:'CAD',base:'USD',quote:'CAD',dec:4,liq:5.5,ses:['NY']},
+  AUDUSD:{n:'豪ドル/米',q:'AUDUSD',cot:'AUD',base:'AUD',quote:'USD',dec:4,liq:5.1,ses:['SYD','TOK']},
+  EURJPY:{n:'ユーロ円',q:'EURJPY',cot:'EURJPY',base:'EUR',quote:'JPY',dec:2,liq:1.9,ses:['TOK','LDN']},
+  GBPJPY:{n:'ポンド円',q:'GBPJPY',cot:'GBPJPY',base:'GBP',quote:'JPY',dec:2,liq:1.1,ses:['TOK','LDN']}
+};
+var PAIRS=Object.keys(PC);
+var SESS={SYD:{tz:'Australia/Sydney',o:7,c:16,jp:'シドニー'},TOK:{tz:'Asia/Tokyo',o:9,c:18,jp:'東京'},LDN:{tz:'Europe/London',o:8,c:16,jp:'ロンドン'},NY:{tz:'America/New_York',o:8,c:17,jp:'NY'}};
+function tzParts(tz,date){var f=new Intl.DateTimeFormat('en-US',{timeZone:tz,hour12:false,weekday:'short',hour:'2-digit',minute:'2-digit'});var o={};f.formatToParts(date).forEach(p=>o[p.type]=p.value);if(o.hour==='24')o.hour='00';return o;}
+function tzOffMin(tz,date){var f=new Intl.DateTimeFormat('en-US',{timeZone:tz,hour12:false,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});var o={};f.formatToParts(date).forEach(p=>o[p.type]=p.value);if(o.hour==='24')o.hour='00';var asUTC=Date.UTC(+o.year,+o.month-1,+o.day,+o.hour,+o.minute,+o.second);return Math.round((asUTC-date.getTime())/6e4);}
+function sesActive(k,date){var s=SESS[k],pr=tzParts(s.tz,date),hr=+pr.hour+(+pr.minute)/60,wd=pr.weekday;if(wd==='Sat'||wd==='Sun')return false;return hr>=s.o&&hr<s.c;}
+function msUntilOpen(k,date){var s=SESS[k],off=tzOffMin(s.tz,date),lnMs=date.getTime()+off*6e4,ln=new Date(lnMs);for(var add=0;add<8;add++){var t=Date.UTC(ln.getUTCFullYear(),ln.getUTCMonth(),ln.getUTCDate()+add,s.o,0,0);if(t<=lnMs)continue;var wd=new Date(t).getUTCDay();if(wd===6||wd===0)continue;return (t-off*6e4)-date.getTime();}return null;}
+function fmtDur(ms){if(ms==null)return'—';if(ms<0)ms=0;var h=Math.floor(ms/36e5),m=Math.floor(ms%36e5/6e4);return h>0?(h+'h'+pad(m)+'m'):(m+'m');}
+function pairSession(p,date){var list=PC[p].ses||[],active=false,activeName='',best=null;list.forEach(function(k){if(sesActive(k,date)){active=true;if(!activeName)activeName=SESS[k].jp;}else{var ms=msUntilOpen(k,date);if(ms!=null&&(best==null||ms<best.ms))best={ms:ms,name:SESS[k].jp};}});return {active:active,activeName:activeName,next:best};}
+function strengthMap(){var m={};(DATA.strength||[]).forEach(x=>m[x.ccy]=x.score);return m;}
+function autoConv(p){
+  var cf=PC[p],pr=(DATA.prices&&DATA.prices[cf.q])||{},sm=strengthMap(),cot=DATA.cot||{},ret=(DATA.analysis&&DATA.analysis.retail&&DATA.analysis.retail[p])||{};
+  var pos=0,neg=0,tot=0;function add(w,s){tot+=w;if(s>0)pos+=w;else if(s<0)neg+=w;}
+  var htf=0;if(pr.price!=null&&pr.ma50&&pr.ma200){if(pr.price>pr.ma50&&pr.price>pr.ma200)htf=1;else if(pr.price<pr.ma50&&pr.price<pr.ma200)htf=-1;}add(3,htf);
+  var st=0;if(p==='XAUUSD')st=sgn(-(sm.USD||0));else st=sgn((sm[cf.base]||0)-(sm[cf.quote]||0));add(2,st);
+  var cs=0;if(p==='USDJPY'){var j=cot.JPY;if(j)cs=sgn(-j.net);}else if(p==='USDCAD'){var cc=cot.CAD;if(cc)cs=sgn(-cc.net);}else if(p==='EURJPY'){var e=cot.EUR,jj=cot.JPY;if(e&&jj)cs=sgn(sgn(e.net)-sgn(jj.net));}else if(p==='GBPJPY'){var g=cot.GBP,j2=cot.JPY;if(g&&j2)cs=sgn(sgn(g.net)-sgn(j2.net));}else{var c=cot[cf.cot];if(c)cs=sgn(c.net);}add(2,cs);
+  var rs=0;if(ret.s!=null)rs=ret.s>52?1:ret.s<48?-1:0;add(1.5,rs);
+  if(!tot)return{dir:0,mag:0};var net=(pos-neg)/tot;return{dir:net>0?1:net<0?-1:0,mag:Math.abs(net)};
+}
+
+var DATA=null;
+async function load(){
+  try{var r=await fetch('./data.json?t='+Date.now(),{cache:'no-store'});DATA=await r.json();render();}
+  catch(e){try{var c=await fetch('./data.json');DATA=await c.json();render();}catch(e2){document.getElementById('root').innerHTML='<div class="wg"><div class="err">データ取得に失敗</div></div>';}}
+}
+function card(ac,label,ic,inner){return '<div class="wg" style="--ac:'+ac+'"><div class="lab"><span class="ic">'+ic+'</span>'+label+'</div>'+inner+'</div>';}
+
+function blkOverview(a){return a.overview?card('#e3b341','本日の概況','◆','<div class="txt">'+esc(a.overview)+'</div>'):'';}
+function blkNews(a){
+  var b=a.bank||{};if(!(b.summary||b.intervention||(b.banks&&b.banks.length)))return'';
+  var s=b.summary?'<div class="txt">'+esc(b.summary)+'</div>':'';
+  var banks=(b.banks&&b.banks.length)?b.banks.filter(x=>x&&(x.name||x.view)).slice(0,3).map(x=>'<div class="bank"><span class="bn">'+esc(x.name||'—')+'</span><span class="bv">'+esc(x.view||'')+'</span></div>').join(''):'';
+  var iv=b.intervention?'<div class="iv"><b>⚠ 介入警戒</b>　'+esc(b.intervention)+'</div>':'';
+  return card('#56b6c2','銀行・ニュース要約','🏦',s+banks+iv);
+}
+function blkSession(){
+  var order=['SYD','TOK','LDN','NY'],now=new Date();
+  var ses=order.map(k=>'<span class="'+(sesActive(k,now)?'on':'')+'">'+k+'</span>').join('');
+  var nextK=null,nextMs=null;order.forEach(function(k){if(!sesActive(k,now)){var ms=msUntilOpen(k,now);if(ms!=null&&(nextMs==null||ms<nextMs)){nextMs=ms;nextK=k;}}});
+  var cd,cn;if(nextK!=null){var s=Math.floor(nextMs/1000);cd=pad(Math.floor(s/3600))+':'+pad(Math.floor(s%3600/60))+':'+pad(s%60);cn=SESS[nextK].jp+'開場まで';}else{cd='OPEN';cn='主要市場 取引時間中';}
+  return card('#9bd66f','セッション','◷','<div class="ses" id="wgSes">'+ses+'</div><div class="cd" id="wgCd">'+cd+'</div><div class="cdn" id="wgCn">'+cn+'</div>');
+}
+function tile(k,obj,dec){if(!obj)return'';var c=obj.chg>0?'up':obj.chg<0?'down':'mid';var dv=obj.derived?'算出':(obj.chg==null?'':(obj.chg>0?'+':'')+Number(obj.chg).toFixed(2)+'%');return '<div class="tile"><div class="k">'+k+'</div><div class="p">'+(obj.price!=null?Number(obj.price).toFixed(dec):'—')+'</div><div class="d '+c+'">'+dv+'</div></div>';}
+function blkTop(){var p=DATA.prices||{};return card('#6aa0ff','主要レート','◇','<div class="tiles">'+tile('USDJPY',p.USDJPY,2)+tile('GOLD',p.GCUSD,1)+tile('EURUSD',p.EURUSD,4)+'</div>');}
+function blkStrength(a){
+  var s=DATA.strength||[];if(!s.length)return'';var mx=Math.max.apply(null,s.map(x=>Math.abs(x.score)))||1;
+  var rows=s.map(function(x){var sign=sgn(x.score),col=sign>0?'var(--up)':sign<0?'var(--down)':'var(--mid)';var w=Math.abs(x.score)/mx*100;return '<div class="srow"><span class="nm">'+x.ccy+'</span><span class="bar"><i style="width:'+w+'%;background:'+col+'"></i></span><span class="vv" style="color:'+col+'">'+(x.score>0?'+':'')+x.score+'</span></div>';}).join('');
+  return card('#9bd66f','通貨強弱','≡',rows);
+}
+function blkScore(a){
+  var now=new Date(),ranked=PAIRS.map(function(p){var st=pairSession(p,now);return {p:p,st:st,cv:autoConv(p),liq:PC[p].liq};});
+  var act=ranked.filter(r=>r.st.active).sort((x,y)=>y.liq-x.liq);
+  var list=(act.length?act:ranked.sort((x,y)=>y.cv.mag-x.cv.mag).slice(0,4));
+  var rows=list.map(function(r){
+    var pa=(DATA.analysis&&DATA.analysis.pairs&&DATA.analysis.pairs[r.p])||{};var bias=pa.bias||'中立';
+    var bc=bias.indexOf('強')>=0?'bull':bias.indexOf('弱')>=0?'bear':'neut';
+    var star=(r.st.active&&r.cv.mag>=0.45&&r.cv.dir!==0)?'<span class="star '+(r.cv.dir>0?'up':'down')+'">★'+(r.cv.dir>0?'買':'売')+'</span>':'';
+    var fl=r.st.active?'⚡'+r.st.activeName:(r.st.next?r.st.next.name+' '+fmtDur(r.st.next.ms):'');
+    return '<div class="pk"><span class="sy">'+r.p+'</span><span class="bz '+bc+'">'+bias.replace(/（.*?）/g,'')+'</span>'+star+'<span class="fl">'+fl+'</span></div>';
+  }).join('');
+  return card('#7ee0c0',act.length?'本日の妙味（取引時間中）':'本日の妙味（参考）','✦',rows||'<div class="txt muted">該当なし</div>');
+}
+
+function render(){
+  var a=DATA.analysis||{},H='';
+  BLOCKS.forEach(function(b){
+    if(b==='overview')H+=blkOverview(a);
+    else if(b==='news')H+=blkNews(a);
+    else if(b==='session')H+=blkSession();
+    else if(b==='top')H+=blkTop();
+    else if(b==='strength')H+=blkStrength(a);
+    else if(b==='score')H+=blkScore(a);
+  });
+  document.getElementById('root').innerHTML=H||'<div class="wg"><div class="txt muted">表示項目が未選択です。</div></div>';
+  var up=DATA.updated?new Date(DATA.updated):null;
+  document.getElementById('foot').textContent=(up?'更新 '+up.toLocaleString('ja-JP'):'')+' ／ タップで全画面アプリ';
+}
+/* live session tick (only updates the session block in place) */
+setInterval(function(){
+  if(!DATA||BLOCKS.indexOf('session')<0)return;
+  var cd=document.getElementById('wgCd');if(!cd)return;
+  var order=['SYD','TOK','LDN','NY'],now=new Date();
+  var se=document.getElementById('wgSes');if(se)se.innerHTML=order.map(k=>'<span class="'+(sesActive(k,now)?'on':'')+'">'+k+'</span>').join('');
+  var nextK=null,nextMs=null;order.forEach(function(k){if(!sesActive(k,now)){var ms=msUntilOpen(k,now);if(ms!=null&&(nextMs==null||ms<nextMs)){nextMs=ms;nextK=k;}}});
+  if(nextK!=null){var s=Math.floor(nextMs/1000);cd.textContent=pad(Math.floor(s/3600))+':'+pad(Math.floor(s%3600/60))+':'+pad(s%60);document.getElementById('wgCn').textContent=SESS[nextK].jp+'開場まで';}else{cd.textContent='OPEN';document.getElementById('wgCn').textContent='主要市場 取引時間中';}
+},1000);
+/* tap anywhere -> open full app */
+document.body.addEventListener('click',function(){location.href='./index.html';});
+load();
+setInterval(load,5*60*1000);
+</script>
+</body>
+</html>
