@@ -83,6 +83,14 @@ details[open] .ct .f{animation:grow .7s cubic-bezier(.2,.85,.25,1) both}@keyfram
 .sc-f{display:flex;align-items:center;gap:9px;padding:5px 0;border-top:1px solid var(--border);font-size:11.5px}.sc-f .ic{width:14px;text-align:center;font-family:'JetBrains Mono',monospace;font-weight:700;flex:none}.sc-f .fl{flex:1}.sc-f .fl small{color:var(--muted);font-size:9.5px}.sc-f .fr{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)}.sc-f.sup .ic{color:var(--up)}.sc-f.ag .ic{color:var(--down)}.sc-f.nu .ic{color:var(--mid)}
 .sc-chip{display:inline-flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:11px;padding:6px 10px;border-radius:9px;border:1px solid var(--border);background:var(--panel2);color:var(--muted);cursor:pointer;margin:0 5px 5px 0;user-select:none}.sc-chip.on{color:var(--up);border-color:color-mix(in srgb,var(--up) 55%,transparent)}.sc-chip.gate.on{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 60%,transparent)}
 .banner{background:color-mix(in srgb,var(--down) 14%,var(--panel));border:1px solid color-mix(in srgb,var(--down) 40%,transparent);color:var(--text);border-radius:11px;padding:10px 13px;font-size:11.5px;margin-bottom:12px;font-family:'JetBrains Mono',monospace}
+.subdiv{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin:13px 4px 7px}.subdiv.on{color:var(--gold)}
+.legend2{font-size:9.5px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin:1px 4px 9px;line-height:1.55}
+.sesb{font-family:'JetBrains Mono',monospace;font-size:8.5px;padding:2px 6px;border-radius:6px;border:1px solid var(--border2);color:var(--muted);white-space:nowrap}
+.sesb.on{color:#06140d;background:var(--gold);border-color:var(--gold);font-weight:700}
+.star{font-family:'JetBrains Mono',monospace;font-size:8.5px;padding:2px 6px;border-radius:6px;font-weight:700;white-space:nowrap}
+.star.up{color:var(--up);border:1px solid color-mix(in srgb,var(--up) 55%,transparent)}.star.down{color:var(--down);border:1px solid color-mix(in srgb,var(--down) 55%,transparent)}
+.ptag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;margin:0 0 6px}
+summary.sum{flex-wrap:wrap}
 footer{margin-top:22px;padding-top:14px;border-top:1px solid var(--border);color:var(--muted);font-size:10.5px;line-height:1.7}
 </style>
 </head>
@@ -113,12 +121,14 @@ function pad(n){return String(n).padStart(2,'0');}
 function clock(){
   var now=new Date();
   document.getElementById('utc').textContent=now.toISOString().slice(11,19)+'Z';
-  var h=now.getUTCHours()+now.getUTCMinutes()/60;
-  var sd=[['TOK',0,9],['LDN',7,16],['NY',12,21]];
-  var se=document.getElementById('sess'); if(se) se.innerHTML=sd.map(s=>'<span class="'+((h>=s[1]&&h<s[2])?'on':'')+'">'+s[0]+'</span>').join('');
-  var opens=[0,7,12,24],names={0:'東京',7:'ロンドン',12:'NY',24:'東京'};
-  var nh=opens.find(o=>o>h); if(nh===undefined)nh=24; var s=Math.floor((nh-h)*3600);
-  var cs=document.getElementById('cdSession'); if(cs){cs.textContent=pad(Math.floor(s/3600))+':'+pad(Math.floor(s%3600/60))+':'+pad(s%60);document.getElementById('cdSessionName').textContent=names[nh]+'まで';}
+  if(typeof SESS!=='undefined'){
+    var order=['SYD','TOK','LDN','NY'];
+    var se=document.getElementById('sess'); if(se) se.innerHTML=order.map(k=>'<span class="'+(sesActive(k,now)?'on':'')+'">'+k+'</span>').join('');
+    var nextK=null,nextMs=null; order.forEach(function(k){ if(!sesActive(k,now)){var ms=msUntilOpen(k,now);if(ms!=null&&(nextMs==null||ms<nextMs)){nextMs=ms;nextK=k;}} });
+    var cs=document.getElementById('cdSession');
+    if(cs){ if(nextK!=null){var s=Math.floor(nextMs/1000);cs.textContent=pad(Math.floor(s/3600))+':'+pad(Math.floor(s%3600/60))+':'+pad(s%60);document.getElementById('cdSessionName').textContent=SESS[nextK].jp+'開場まで';} else {cs.textContent='OPEN';document.getElementById('cdSessionName').textContent='主要市場 取引時間中';} }
+    if(typeof PAIRS!=='undefined') PAIRS.forEach(function(p){ var el=document.getElementById('co_'+p); if(!el)return; var st=pairSession(p,now); if(st.active){el.className='sesb on';el.textContent='⚡'+st.activeName;} else if(st.next){el.className='sesb';el.textContent=st.next.name+' '+fmtDur(st.next.ms);} else {el.className='sesb';el.textContent='—';} });
+  }
   var cpi=nextWed1230()-now.getTime(),el=document.getElementById('cdCpi');
   if(el){ if(cpi<=0)el.textContent='発表時間帯'; else{var d=Math.floor(cpi/864e5),hh=Math.floor(cpi%864e5/36e5),mm=Math.floor(cpi%36e5/6e4);el.textContent=d+'日 '+pad(hh)+':'+pad(mm);} }
 }
@@ -155,15 +165,40 @@ function divBar(sign,wpct,labelHtml,col){ // sign +1 right(green)/-1 left(red)
   return '<div class="cs"><span class="cl">'+labelHtml+'</span><div class="ct"><div class="h l">'+L+'</div><div class="m"></div><div class="h r">'+R+'</div></div><span class="'+(col?'cv cvw':'cv')+'" style="'+(col?'color:'+col:'')+'">';
 }
 
-/* ---------- pair config ---------- */
+/* ---------- pair config ----------
+   liq = global turnover share % (BIS 2022, gold=proxy) for liquidity ordering
+   ses = advantaged trading sessions ; tag = character ; dec = decimals */
 var PC={
-  XAUUSD:{n:'ゴールド',c:'#e3b341',q:'GCUSD',cot:'GOLD',base:'gold'},
-  EURUSD:{n:'ユーロドル',c:'#6aa0ff',q:'EURUSD',cot:'EUR',base:'EUR',quote:'USD'},
-  USDJPY:{n:'ドル円',c:'#4ec9b0',q:'USDJPY',cot:'JPY',base:'USD',quote:'JPY'},
-  EURJPY:{n:'ユーロ円',c:'#c792ea',q:'EURJPY',cot:'EURJPY',base:'EUR',quote:'JPY'},
-  GBPUSD:{n:'ポンドドル',c:'#e08a9b',q:'GBPUSD',cot:'GBP',base:'GBP',quote:'USD'}
+  EURUSD:{n:'ユーロドル',c:'#6aa0ff',q:'EURUSD',cot:'EUR',base:'EUR',quote:'USD',dec:4,liq:22.7,ses:['LDN','NY'],tag:'最大流動性・対ドル基軸・米欧金利差'},
+  USDJPY:{n:'ドル円',c:'#4ec9b0',q:'USDJPY',cot:'JPY',base:'USD',quote:'JPY',dec:2,liq:13.5,ses:['TOK','LDN','NY'],tag:'日米金利差・リスク・介入警戒'},
+  GBPUSD:{n:'ポンドドル',c:'#e08a9b',q:'GBPUSD',cot:'GBP',base:'GBP',quote:'USD',dec:4,liq:9.5,ses:['LDN','NY'],tag:'英BOE金利・対ドル'},
+  XAUUSD:{n:'ゴールド',c:'#e3b341',q:'GCUSD',cot:'GOLD',base:'gold',dec:1,liq:9,ses:['LDN','NY'],tag:'実質金利・有事/地政学・ドル逆相関'},
+  USDCAD:{n:'米ドル/加ドル',c:'#e0a96b',q:'USDCAD',cot:'CAD',base:'USD',quote:'CAD',dec:4,liq:5.5,ses:['NY'],tag:'原油相関・北米指標'},
+  AUDUSD:{n:'豪ドル/米ドル',c:'#5fd0c0',q:'AUDUSD',cot:'AUD',base:'AUD',quote:'USD',dec:4,liq:5.1,ses:['SYD','TOK'],tag:'資源国・中国景気・リスク代理'},
+  EURJPY:{n:'ユーロ円',c:'#c792ea',q:'EURJPY',cot:'EURJPY',base:'EUR',quote:'JPY',dec:2,liq:1.9,ses:['TOK','LDN'],tag:'リスク選好クロス'},
+  GBPJPY:{n:'ポンド円',c:'#d18ad1',q:'GBPJPY',cot:'GBPJPY',base:'GBP',quote:'JPY',dec:2,liq:1.1,ses:['TOK','LDN'],tag:'高ボラ・リスク選好バロメーター'}
 };
 var PAIRS=Object.keys(PC);
+
+/* ---------- FX sessions (DST-aware via Intl timeZone) ---------- */
+var SESS={
+  SYD:{tz:'Australia/Sydney',o:7,c:16,jp:'シドニー'},
+  TOK:{tz:'Asia/Tokyo',o:9,c:18,jp:'東京'},
+  LDN:{tz:'Europe/London',o:8,c:16,jp:'ロンドン'},
+  NY:{tz:'America/New_York',o:8,c:17,jp:'NY'}
+};
+function tzParts(tz,date){var f=new Intl.DateTimeFormat('en-US',{timeZone:tz,hour12:false,weekday:'short',hour:'2-digit',minute:'2-digit'});var o={};f.formatToParts(date).forEach(p=>o[p.type]=p.value);if(o.hour==='24')o.hour='00';return o;}
+function tzOffMin(tz,date){var f=new Intl.DateTimeFormat('en-US',{timeZone:tz,hour12:false,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});var o={};f.formatToParts(date).forEach(p=>o[p.type]=p.value);if(o.hour==='24')o.hour='00';var asUTC=Date.UTC(+o.year,+o.month-1,+o.day,+o.hour,+o.minute,+o.second);return Math.round((asUTC-date.getTime())/6e4);}
+function sesActive(k,date){var s=SESS[k],pr=tzParts(s.tz,date),hr=+pr.hour+(+pr.minute)/60,wd=pr.weekday;if(wd==='Sat'||wd==='Sun')return false;return hr>=s.o&&hr<s.c;}
+function msUntilOpen(k,date){var s=SESS[k],off=tzOffMin(s.tz,date),lnMs=date.getTime()+off*6e4,ln=new Date(lnMs);
+  for(var add=0;add<8;add++){var t=Date.UTC(ln.getUTCFullYear(),ln.getUTCMonth(),ln.getUTCDate()+add,s.o,0,0);if(t<=lnMs)continue;var wd=new Date(t).getUTCDay();if(wd===6||wd===0)continue;return (t-off*6e4)-date.getTime();}
+  return null;}
+function pairSession(p,date){var list=PC[p].ses||[],active=false,activeName='',best=null;
+  list.forEach(function(k){ if(sesActive(k,date)){active=true;if(!activeName)activeName=SESS[k].jp;} else {var ms=msUntilOpen(k,date);if(ms!=null&&(best==null||ms<best.ms))best={ms:ms,name:SESS[k].jp};} });
+  return {active:active,activeName:activeName,next:best};}
+function fmtDur(ms){if(ms==null)return'—';if(ms<0)ms=0;var h=Math.floor(ms/36e5),m=Math.floor(ms%36e5/6e4);return h>0?(h+'h'+pad(m)+'m'):(m+'m');}
+/* auto-confluence conviction (data-only) for the ★ tradeable marker */
+function autoConviction(p){var F=autoFactors(p),pos=0,neg=0,tot=0;F.forEach(function(f){tot+=f.w;if(f.sign>0)pos+=f.w;else if(f.sign<0)neg+=f.w;});if(!tot)return{dir:0,mag:0};var net=(pos-neg)/tot;return{dir:net>0?1:net<0?-1:0,mag:Math.abs(net)};}
 
 /* ---------- render ---------- */
 function render(offline){
@@ -187,7 +222,13 @@ function render(offline){
   H+=cotRetailHTML(a);
   H+=bankHTML(a);
   H+='<div class="grouphead">各通貨ペア</div>';
-  PAIRS.forEach(p=>H+=pairHTML(p,a));
+  H+='<div class="legend2">並び順＝①いまセッション優位 ②世界流動性シェア順。⚡＝主要セッション中／★買・★売＝データ優位で取引妙味／市場名＋残時間＝開場まで。</div>';
+  var nowD=new Date();
+  var ranked=PAIRS.map(function(p){var st=pairSession(p,nowD);return {p:p,active:st.active,st:st,cv:autoConviction(p),liq:PC[p].liq};});
+  ranked.sort(function(x,y){return (y.active-x.active)||(y.liq-x.liq);});
+  var act=ranked.filter(r=>r.active),ina=ranked.filter(r=>!r.active);
+  if(act.length){ H+='<div class="subdiv on">⚡ 時間帯優位（取引時間中・上位表示）</div>'; act.forEach(r=>H+=pairHTML(r.p,a,r.st,r.cv)); H+='<div class="subdiv">その他（時間帯優位なし・参考）</div>'; ina.forEach(r=>H+=pairHTML(r.p,a,r.st,r.cv)); }
+  else { ranked.forEach(r=>H+=pairHTML(r.p,a,r.st,r.cv)); }
   document.getElementById('app').innerHTML=H;
   document.getElementById('foot').innerHTML='<b>情報源</b>：FMP（価格・指数・金利）/ CFTC（COT）/ Myfxbook・FXSSI（個人）/ SMBC・みずほ・MUFG・InvestingLive・Web（ニュース）。サーバー側で3時間ごと取得→本アプリは描画のみ。判断材料であり売買助言ではありません。'+(d.errors&&d.errors.length?'<br><span class="q">取得メモ: '+d.errors.join(' / ')+'</span>':'');
   initSC(); bindSrc(); bindDetailsAnim();
@@ -195,7 +236,7 @@ function render(offline){
 function renderPulse(){
   var p=DATA.prices,y=DATA.yields,row='';
   function tk(k,obj,sfx){ if(!obj)return''; var c=obj.chg>0?'up':obj.chg<0?'down':'mid'; var dv=obj.derived?'算出':(obj.chg==null?'':(obj.chg>0?'+':'')+Number(obj.chg).toFixed(2)+'%'); return '<div class="tk"><div class="k">'+k+'</div><div class="p">'+(obj.price!=null?Number(obj.price).toFixed(sfx||2):'—')+'</div><div class="d '+c+'">'+dv+'</div></div>';}
-  row+=tk('USDJPY',p.USDJPY,2);row+=tk('EURUSD',p.EURUSD,4);row+=tk('GBPUSD',p.GBPUSD,4);row+=tk('EURJPY',p.EURJPY,2);row+=tk('GOLD',p.GCUSD,1);row+=tk('S&P500',p.GSPC,0);
+  row+=tk('USDJPY',p.USDJPY,2);row+=tk('EURUSD',p.EURUSD,4);row+=tk('GBPUSD',p.GBPUSD,4);row+=tk('AUDUSD',p.AUDUSD,4);row+=tk('USDCAD',p.USDCAD,4);row+=tk('EURJPY',p.EURJPY,2);row+=tk('GBPJPY',p.GBPJPY,2);row+=tk('GOLD',p.GCUSD,1);row+=tk('S&P500',p.GSPC,0);
   if(y&&y.y10!=null)row+='<div class="tk"><div class="k">US10Y</div><div class="p">'+y.y10+'%</div><div class="d mid">'+(y.y2!=null?'2Y '+y.y2+'%':'')+'</div></div>';
   document.getElementById('pulse').innerHTML=row;
 }
@@ -217,20 +258,20 @@ function riskMacroHTML(a){
 function cotRetailHTML(a){
   var cot=DATA.cot||{},ret=(a&&a.retail)||{};
   var mx=Math.max.apply(null,Object.values(cot).map(c=>Math.abs(c.net||0)))||1;
-  var order=[['GOLD','GOLD'],['EUR','EUR'],['JPY','JPY'],['GBP','GBP']];
+  var order=[['GOLD','XAUUSD'],['EUR','EURUSD'],['JPY','USDJPY'],['GBP','GBPUSD'],['AUD','AUDUSD'],['CAD','USDCAD']];
+  var quoteCcy={JPY:1,CAD:1}; //相手通貨：ペア方向はCOTネットの逆
   var bars=order.map(function(o){var c=cot[o[0]];if(!c)return'';var sign=sgn(c.net),col=sign>0?'var(--up)':'var(--down)';
-    return divBar(sign,Math.abs(c.net)/mx*100,o[1],col)+(c.net>0?'+':'')+fmtN(c.net)+'<br><small>'+(c.chg!=null?(c.chg>0?'+':'')+fmtN(c.chg):'')+'</small></span></div>';}).join('');
-  // comparison rows
-  var map={GOLD:'XAUUSD',EUR:'EURUSD',JPY:'USDJPY',GBP:'GBPUSD'};
-  var rows=order.map(function(o){var c=cot[o[0]];if(!c)return'';var pr=map[o[0]],r=ret[pr]||{};
-    var big=c.net>0?'買越':'売越', bigDir=o[0]==='JPY'?'(USDJPY上昇方向)':'';
-    var rt=r.s!=null?('売 S'+r.s):'要確認';
-    var verdict='—';
-    if(o[0]==='JPY')verdict='<span class="vb n">大口強気</span>';
-    else if(r.s!=null){ var bigLong=c.net>0, retShort=r.s>50; verdict=(bigLong&&retShort)?'<span class="vb x">逆</span>':(!bigLong&&retShort)?'<span class="vb o">一致</span>':'<span class="vb n">混在</span>'; }
-    return '<tr><td class="sy">'+o[1]+'</td><td class="'+(c.net>0?'up':'down')+'">'+big+' '+(c.net>0?'+':'')+fmtN(c.net)+'</td><td class="down">'+rt+'</td><td>'+verdict+'</td></tr>';}).join('');
-  var inner='<p class="note">投機筋ネット(右=買越/左=売越)。下表で個人と比較 ［CFTC・Tradingster／Myfxbook・FXSSI］</p>'+bars+
-    '<table class="cmp" style="margin-top:8px"><tr><th>銘柄</th><th>大口(COT)</th><th>個人</th><th>判定</th></tr>'+rows+'</table>'+(a&&a.cotReading?'<p>'+a.cotReading+'</p>':'');
+    return divBar(sign,Math.abs(c.net)/mx*100,o[0],col)+(c.net>0?'+':'')+fmtN(c.net)+'<br><small>'+(c.chg!=null?(c.chg>0?'+':'')+fmtN(c.chg):'')+'</small></span></div>';}).join('');
+  var rows=order.map(function(o){var c=cot[o[0]];if(!c)return'';var pr=o[1],r=ret[pr]||{};
+    var bullPair=quoteCcy[o[0]]?c.net<0:c.net>0;
+    var bigTxt=(c.net>0?'買越 +':'売越 ')+fmtN(c.net)+(quoteCcy[o[0]]?'<br><small>'+(bullPair?pr+'↑寄り':pr+'↓寄り')+'</small>':'');
+    var rt=r.s!=null?('S'+r.s+'/L'+(r.l!=null?r.l:100-r.s)):'要確認';
+    var verdict;
+    if(r.s!=null){var retShort=r.s>50,agree=(bullPair&&!retShort)||(!bullPair&&retShort);verdict=agree?'<span class="vb o">一致</span>':'<span class="vb x">逆</span>';}
+    else verdict='<span class="vb n">'+(bullPair?'大口↑':'大口↓')+'</span>';
+    return '<tr><td class="sy">'+pr+'</td><td class="'+(c.net>0?'up':'down')+'">'+bigTxt+'</td><td>'+rt+'</td><td>'+verdict+'</td></tr>';}).join('');
+  var inner='<p class="note">投機筋ネット(右=買越/左=売越)。JPY/CADは相手通貨のためペア方向は逆。下表で個人と比較 ［CFTC・Tradingster／Myfxbook・FXSSI］</p>'+bars+
+    '<table class="cmp" style="margin-top:8px"><tr><th>銘柄</th><th>大口(COT)</th><th>個人(S/L)</th><th>判定</th></tr>'+rows+'</table>'+(a&&a.cotReading?'<p>'+a.cotReading+'</p>':'');
   return acc('#5fd08a','大口 × 個人','ポジション比較',inner,false);
 }
 function bankHTML(a){
@@ -244,13 +285,20 @@ function bankHTML(a){
     ((!news&&!b.drivers)?'<p class="q">未生成。ANTHROPIC_API_KEY設定（＋web検索）で自動生成されます。</p>':'');
   return acc('#56b6c2','銀行・ニュース要約',news?'web検索＋集約':'集約',inner,false);
 }
-function pairHTML(p,a){
+function pairHTML(p,a,st,cv){
   var cf=PC[p],pr=DATA.prices[cf.q]||{},pa=(a&&a.pairs&&a.pairs[p])||{};
+  st=st||pairSession(p,new Date()); cv=cv||autoConviction(p);
+  var dec=cf.dec||2;
   var bias=pa.bias||'中立',bc=bias.indexOf('強')>=0?'bull':bias.indexOf('弱')>=0?'bear':'neut';
-  var chg=pr.chg!=null?((pr.chg>0?'+':'')+Number(pr.chg).toFixed(2)+'%'):'';
-  var sub='<span class="'+(pr.chg>0?'up':pr.chg<0?'down':'mid')+'">'+(pr.price!=null?Number(pr.price).toFixed(p==='EURUSD'||p==='GBPUSD'?4:p==='EURJPY'?2:p==='XAUUSD'?1:2):'—')+' '+chg+'</span>';
-  var rng=(pr.low!=null&&pr.high!=null&&pr.price!=null&&pr.high>pr.low)?('<p class="note">日中 '+pr.low+'–'+pr.high+(pr.ma50?' / 50日 '+Number(pr.ma50).toFixed(2)+'・200日 '+Number(pr.ma200).toFixed(2):'')+'</p>'):'';
-  var body=rng+
+  var chg=pr.chg!=null?((pr.chg>0?'+':'')+Number(pr.chg).toFixed(2)+'%'):(pr.derived?'算出':'');
+  var sub='<span class="'+(pr.chg>0?'up':pr.chg<0?'down':'mid')+'">'+(pr.price!=null?Number(pr.price).toFixed(dec):'—')+' '+chg+'</span>';
+  var sesTxt = st.active ? '⚡'+st.activeName : (st.next?st.next.name+' '+fmtDur(st.next.ms):'—');
+  var sesBadge='<span class="sesb'+(st.active?' on':'')+'" id="co_'+p+'" title="優位セッション／開場まで">'+sesTxt+'</span>';
+  var star=(st.active&&cv.mag>=0.45&&cv.dir!==0)?'<span class="star '+(cv.dir>0?'up':'down')+'" title="データ優位で取引妙味">★'+(cv.dir>0?'買':'売')+'</span>':'';
+  var sesNames=cf.ses.map(k=>SESS[k].jp).join('・');
+  var ptag='<span class="ptag">'+cf.tag+'｜流動性 約'+cf.liq+'%｜優位 '+sesNames+'</span>';
+  var rng=(pr.low!=null&&pr.high!=null&&pr.price!=null&&pr.high>pr.low)?('<p class="note">日中 '+pr.low+'–'+pr.high+(pr.ma50?' / 50日 '+Number(pr.ma50).toFixed(2)+'・200日 '+Number(pr.ma200).toFixed(2):'')+'</p>'):(pr.derived?'<p class="note">合成値（'+cf.base+'×'+(cf.quote||'')+'系）。MAは構成ペア参照。</p>':'');
+  var body=ptag+rng+
     (pa.trend?'<h4>相場観・トレンド</h4><p>'+pa.trend+'</p>':'')+
     (pa.news?'<h4>関連ニュース（統合）</h4><p>'+pa.news+'</p>':'')+
     (pa.strategy?'<h4>テクニカル戦略</h4><p>'+pa.strategy+'</p>':'')+
@@ -258,7 +306,7 @@ function pairHTML(p,a){
     (pa.cotRead?'<h4>大口×個人</h4><p>'+pa.cotRead+'</p>':'')+
     (pa.risk?'<h4>リスク</h4><p>'+pa.risk+'</p>':'')+
     (!pa.trend?'<p class="q">分析未生成（数値はヘッダ参照）。</p>':'');
-  var sumExtra='<span class="bp '+bc+'">'+bias+'</span>';
+  var sumExtra=star+sesBadge+'<span class="bp '+bc+'">'+bias+'</span>';
   return '<details class="acc" style="--accent:'+cf.c+'"><summary class="sum"><span class="dot"></span><span class="ttl">'+p+' <small>'+cf.n+'</small></span><span class="sub">'+sub+'</span>'+sumExtra+'<span class="chev">▸</span></summary><div class="inner">'+body+'</div></details>';
 }
 
@@ -284,6 +332,8 @@ function autoFactors(p){
   var cs=0,cn='';
   if(p==='USDJPY'){ var j=cot.JPY; if(j){cs=sgn(-j.net);cn='円'+(j.net<0?'売越→USDJPY支持':'買越');} }
   else if(p==='EURJPY'){ var e=cot.EUR,jj=cot.JPY; if(e&&jj){cs=sgn(sgn(e.net)+(-sgn(jj.net)));cn='EUR/円建玉から';} }
+  else if(p==='GBPJPY'){ var g=cot.GBP,j2=cot.JPY; if(g&&j2){cs=sgn(sgn(g.net)+(-sgn(j2.net)));cn='GBP/円建玉から';} }
+  else if(p==='USDCAD'){ var cc=cot.CAD; if(cc){cs=sgn(-cc.net);cn='加ドル'+(cc.net<0?'売越→USDCAD支持':'買越→USDCAD重い');} }
   else { var c=cot[cf.cot]; if(c){cs=sgn(c.net);cn='ネット'+(c.net>0?'買越':'売越')+' '+fmtN(c.net);} }
   F.push({k:'大口COT',w:2,sign:cs,note:cn});
   // retail contrarian
@@ -305,8 +355,8 @@ function scRender(){
   document.querySelectorAll('.sc-chip').forEach(c=>c.onclick=function(){man[this.dataset.id]=!man[this.dataset.id];scRender();});
   SCMAN.forEach(f=>{if(f.gate)return;tot+=f.w;if(man[f.id])sup+=f.w;});
   var pct=Math.round(sup/tot*100),flags=[],cap=1,veto=false;
-  var h=new Date().getUTCHours()+new Date().getUTCMinutes()/60,inSes=(h>=7&&h<21);
-  flags.push({t:inSes?'セッション内':'セッション外',ok:inSes});if(!inSes)cap=2;
+  var ps=pairSession(SC.cur,new Date()),inSes=ps.active;
+  flags.push({t:inSes?'優位セッション中('+ps.activeName+')':'セッション優位外',ok:inSes});if(!inSes)cap=2;
   var cm=(nextWed1230()-Date.now())/6e4; if(cm>0&&cm<30){flags.push({t:'CPI直前=回避',ok:false});veto=true;}
   if(man.rr)flags.push({t:'RR≥2',ok:true});else{flags.push({t:'RR<2/未確認',ok:false});cap=Math.max(cap,2);}
   var cotG=DATA.cot&&DATA.cot.GOLD,gpr=DATA.prices.GCUSD;
