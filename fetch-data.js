@@ -53,6 +53,37 @@ async function getPrices(errors) {
   if (prices.GBPUSD && prices.USDJPY) prices.GBPJPY = { price: +(prices.GBPUSD.price * prices.USDJPY.price).toFixed(2), derived: true };
   return prices;
 }
+/* ---------- FMP: 30-day closes for sparklines (isolated; absence is fine) ---------- */
+async function getSparks(errors) {
+  if (!FMP) return null;
+  const d2 = (d) => d.toISOString().slice(0, 10);
+  const to = new Date(), from = new Date(Date.now() - 46 * 864e5);
+  const syms = [...FX, "GCUSD", "%5EGSPC"];
+  const out = {};
+  for (const s of syms) {
+    try {
+      const res = await withRetry(() => getJSON(`https://financialmodelingprep.com/stable/historical-price-eod/light?symbol=${s}&from=${d2(from)}&to=${d2(to)}&apikey=${FMP}`));
+      const rows = Array.isArray(res) ? res : (res && res.historical) || [];
+      const pts = rows
+        .map((r) => ({ d: r.date, c: Number(r.price ?? r.close ?? r.adjClose) }))
+        .filter((p) => p.d && isFinite(p.c))
+        .sort((a, b) => (a.d < b.d ? -1 : 1))
+        .slice(-32);
+      if (pts.length >= 5) out[s === "%5EGSPC" ? "GSPC" : s] = pts;
+    } catch (e) { errors.push("spark " + s + ": " + e.message); }
+    await sleep(300);
+  }
+  const map = (k) => { const m = {}; (out[k] || []).forEach((p) => (m[p.d] = p.c)); return m; };
+  const cross = (a, b) => Object.keys(a).filter((d) => b[d]).sort().map((d) => ({ d, c: a[d] * b[d] })).slice(-32);
+  const eu = map("EURUSD"), uj = map("USDJPY"), gu = map("GBPUSD");
+  const ej = cross(eu, uj); if (ej.length >= 5) out.EURJPY = ej;
+  const gj = cross(gu, uj); if (gj.length >= 5) out.GBPJPY = gj;
+  if (!Object.keys(out).length) return null;
+  const flat = {};
+  for (const [k, v] of Object.entries(out)) flat[k] = v.map((p) => +(+p.c).toPrecision(7));
+  return flat;
+}
+
 function calcStrength(p) {
   const vsUSD = { USD: 0, EUR: p.EURUSD?.chg, GBP: p.GBPUSD?.chg, AUD: p.AUDUSD?.chg, JPY: p.USDJPY ? -p.USDJPY.chg : undefined, CHF: p.USDCHF ? -p.USDCHF.chg : undefined, CAD: p.USDCAD ? -p.USDCAD.chg : undefined };
   const vals = Object.values(vsUSD).filter((v) => typeof v === "number");
@@ -190,7 +221,7 @@ const errors = [];
 const out = {
   updated: now,
   prices: prev.prices || {}, yields: prev.yields || {}, strength: prev.strength || [],
-  cot: prev.cot || {}, analysis: prev.analysis || null,
+  cot: prev.cot || {}, analysis: prev.analysis || null, spark: prev.spark || null,
   news: prev.news || null, freshness: prev.freshness || {}, errors: []
 };
 
@@ -200,6 +231,12 @@ try {
   if (Object.keys(p).length >= 4) { out.prices = p; out.strength = calcStrength(p); out.freshness.prices = now; }
   else errors.push("prices: 取得不足→前回値を維持");
 } catch (e) { errors.push("prices: " + e.message + "→前回値を維持"); }
+
+// 1b) 30-day closes for sparklines (optional layer)
+try {
+  const sp = await getSparks(errors);
+  if (sp) { out.spark = sp; out.freshness.spark = now; }
+} catch (e) { errors.push("spark: " + e.message + "→前回値を維持"); }
 
 // 2) yields
 try { out.yields = await getYields(); out.freshness.yields = now; }
