@@ -199,13 +199,14 @@ async function getAnalysis(out, news, errors) {
 - GBPJPY: 高ボラティリティ、リスク選好バロメーター(GBPUSD×USDJPY)。
 手法=1H/15M/5M・エリオット第3波・セッション・ティア別。
 news欄とbank欄はニュース要約を反映（無い項目は数値・水準・移動平均・利回り・COTからの地合いを書き、不明は"要確認"）。bank.summaryはニュース全体を2〜3文に凝縮。bank.banksは各機関(MUFG/三井住友/みずほ/野村/Goldman/OANDA/外為どっとコム等)の見解を1社1文で要約（取得できた範囲のみ、無ければ[]）。各ペアのcotReadは該当通貨のCOTと価格の整合/乖離に言及。retailは要約や一般傾向からの推定（数値は後で実測上書きの場合あり）。
-重要: 出力はJSONオブジェクトだけ。前置き・Markdown・コードフェンス・コメントは付けない。文字列中に改行やダブルクォートを入れない。各文は簡潔に1〜2文。スキーマ:
+重要: 出力はJSONオブジェクトだけ（全体で日本語4500字以内）。前置き・Markdown・コードフェンス・コメントは付けない。文字列中に改行やダブルクォートを入れない。各文は簡潔に1〜2文。スキーマ:
 {"overview":"","strengthRead":"","riskMacro":"","scenario":"","cotReading":"","retail":{"XAUUSD":{"s":59,"l":41,"note":""},"EURUSD":{},"USDJPY":{},"EURJPY":{},"GBPUSD":{},"AUDUSD":{},"USDCAD":{},"GBPJPY":{}},"bank":{"summary":"","banks":[{"name":"","view":""}],"drivers":"","intervention":"","risk":"","rangeUSDJPY":"","rangeEURJPY":""},"pairs":{"XAUUSD":{"bias":"","trend":"","news":"","strategy":"","levels":"","cotRead":"","risk":""},"EURUSD":{},"USDJPY":{},"EURJPY":{},"GBPUSD":{},"AUDUSD":{},"USDCAD":{},"GBPJPY":{}}}`;
   const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 120000);
+  const t = setTimeout(() => ctrl.abort(), 180000);
   try {
-    const data = await callAnthropic({ model: MODEL, max_tokens: 5000, messages: [{ role: "user", content: prompt }] }, ctrl.signal);
+    const data = await callAnthropic({ model: MODEL, max_tokens: 9000, messages: [{ role: "user", content: prompt }] }, ctrl.signal);
     if (data.type === "error") { errors.push("Anthropic: " + ((data.error && data.error.message) || "error")); return null; }
+    if (data.stop_reason === "max_tokens") errors.push("Anthropic: 出力上限到達(切詰め)");
     let text = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n").trim();
     text = text.replace(/```json/gi, "").replace(/```/g, "").trim();
     try { return JSON.parse(repairJSON(text)); }
