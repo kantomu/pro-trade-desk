@@ -1,5 +1,5 @@
-const SHELL = "td-shell-v2";
-const SHELL_FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
+const SHELL = "td-shell-v3";
+const SHELL_FILES = ["./", "./index.html", "./widget.html", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(SHELL).then((c) => c.addAll(SHELL_FILES)).then(() => self.skipWaiting()));
