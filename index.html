@@ -55,16 +55,17 @@ header.top{
   background:color-mix(in srgb,var(--ink) 86%, transparent);
   backdrop-filter:blur(16px);border-bottom:1px solid var(--seam);
 }
-.mark{width:30px;height:30px;border-radius:50%;flex:none;border:1px solid var(--goldline);
-  display:grid;place-items:center;color:var(--gold);font-size:13px;
-  background:radial-gradient(120% 120% at 30% 25%, color-mix(in srgb,var(--gold) 22%, transparent), transparent 60%);
-  box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--ink) 60%, transparent);}
+.mark{width:30px;height:30px;border-radius:50%;flex:none;border:1px solid var(--goldline);overflow:hidden}
+.mark img{width:100%;height:100%;display:block;object-fit:cover}
 .wordmark{line-height:1.05}
 .wordmark .l1{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:13.5px;letter-spacing:2.2px}
 .wordmark .l1 b{color:var(--gold);font-weight:800}
 .wordmark .l2{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:1.8px;color:var(--mut2)}
 .top .sp{flex:1}
 .clock{display:flex;align-items:center;gap:6px;font-size:11.5px}
+.cstack{text-align:right;line-height:1.15}
+.cstack b{display:block;font-size:11px;font-weight:700}
+.cstack i{display:block;font-style:normal;font-size:8px;color:var(--mut2);letter-spacing:.6px}
 .dotlive{width:7px;height:7px;border-radius:50%;background:var(--long);animation:pul 2s infinite}
 .dotlive.stale{background:var(--gold)} .dotlive.dead{background:var(--short);animation:none}
 @keyframes pul{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--long) 55%,transparent)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
@@ -118,6 +119,8 @@ p.body{font-size:12.8px}
 .ch{position:relative;height:24px;border-top:1px solid var(--seam)}
 .ch:first-child{border-top:0}
 .ch .nm{position:absolute;left:7px;top:50%;transform:translateY(-50%);z-index:3;font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:1px;color:var(--mut)}
+.ch .nm i{font-style:normal;color:var(--mut2);margin-left:2px;letter-spacing:.3px}
+.ch.live .nm i{color:var(--brass)}
 .ch .seg{position:absolute;top:5px;bottom:5px;border-radius:6px;background:color-mix(in srgb,var(--gold) 16%,transparent);border:1px solid var(--goldline)}
 .ch.live .seg{background:color-mix(in srgb,var(--gold) 34%,transparent);box-shadow:0 0 14px color-mix(in srgb,var(--gold) 30%,transparent)}
 .ch.live .nm{color:var(--brass);font-weight:700}
@@ -334,10 +337,10 @@ footer{margin:20px 2px 6px;color:var(--mut2);font-size:9.5px;line-height:1.8;fon
 
 <div class="shell">
   <header class="top">
-    <div class="mark">◆</div>
+    <div class="mark"><img src="./icon-192.png" alt="MM" /></div>
     <div class="wordmark"><div class="l1">MACRO <b>MIXER</b></div><div class="l2">MM · BULLION TERMINAL</div></div>
     <div class="sp"></div>
-    <div class="clock mono"><span class="dotlive" id="liveDot"></span><b id="utc">--:--:--</b></div>
+    <div class="clock mono"><span class="dotlive" id="liveDot"></span><span class="cstack"><b id="jst">--:--:-- JST</b><i id="utc">UTC --:--</i></span></div>
     <button class="icbtn" id="btnRefresh" aria-label="更新">
       <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
     </button>
@@ -426,7 +429,7 @@ function pairSession(p,date){var list=PC[p].ses||[],active=false,activeName='',b
   list.forEach(function(k){if(sesActive(k,date)){active=true;if(!activeName)activeName=SESS[k].jp;}else{var ms=msUntilOpen(k,date);if(ms!=null&&(best==null||ms<best.ms))best={ms:ms,name:SESS[k].jp};}});
   return {active:active,activeName:activeName,next:best};}
 function fmtDur(ms){if(ms==null)return'—';if(ms<0)ms=0;var h=Math.floor(ms/36e5),m=Math.floor(ms%36e5/6e4);return h>0?(h+'h'+pad(m)+'m'):(m+'m');}
-function sesBadgeTxt(p,now){var st=pairSession(p,now);return st.active?('⚡'+st.activeName):(st.next?(st.next.name+' '+fmtDur(st.next.ms)):'—');}
+function sesBadgeTxt(p,now){var st=pairSession(p,now);return st.active?((st.activeName==='NY'?'':'⚡')+st.activeName):(st.next?(st.next.name+' '+fmtDur(st.next.ms)):'—');}
 function nextWed1230(){var n=new Date(),day=n.getUTCDay(),add=(3-day+7)%7;var t=new Date(Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate()+add,12,30,0));if(t.getTime()<n.getTime())t=new Date(t.getTime()+7*864e5);return t.getTime();}
 
 /* ================= confluence math (unchanged logic) ================= */
@@ -538,15 +541,17 @@ function railHTML(){
   var chs=order.map(function(k){
     var s=SESS[k],pr=tzParts(s.tz,now),wknd=(pr.weekday==='Sat'||pr.weekday==='Sun');
     var off=tzOffMin(s.tz,now);
-    var open=((s.o*60-off)%1440+1440)%1440, close=open+(s.c-s.o)*60;
+    var openU=((s.o*60-off)%1440+1440)%1440, len=(s.c-s.o)*60;
+    var openJ=(openU+540)%1440, closeJ=openJ+len;
     var segs=[];
-    if(close<=1440)segs.push([open,close]);else{segs.push([open,1440]);segs.push([0,close-1440]);}
+    if(closeJ<=1440)segs.push([openJ,closeJ]);else{segs.push([openJ,1440]);segs.push([0,closeJ-1440]);}
     var segHTML=segs.map(function(sg){return '<span class="seg" style="left:'+(sg[0]/14.4)+'%;width:'+((sg[1]-sg[0])/14.4)+'%"></span>';}).join('');
+    var oh=Math.round(openJ/60)%24, ch2=Math.round((openJ+len)/60)%24;if(ch2===0)ch2=24;
     var live=sesActive(k,now);
-    return '<div class="ch'+(live?' live':'')+(wknd?' closed':'')+'" data-ch="'+k+'"><span class="nm">'+k+(wknd?'・休場':'')+'</span>'+segHTML+'</div>';
+    return '<div class="ch'+(live?' live':'')+(wknd?' closed':'')+'" data-ch="'+k+'"><span class="nm">'+k+' <i>'+pad(oh)+'-'+pad(ch2)+'</i>'+(wknd?'・休場':'')+'</span>'+segHTML+'</div>';
   }).join('');
   var scale='<div class="scale"><span>0</span><span>3</span><span>6</span><span>9</span><span>12</span><span>15</span><span>18</span><span>21</span><span>24</span></div>';
-  return '<div class="rail">'+scale+'<div class="railbox" id="railbox">'+chs+'<span class="ph" id="ph"></span></div><div class="legend"><span>UTC 24h ─ 金の帯＝各市場の取引時間</span><span id="railNote"></span></div></div>';
+  return '<div class="rail">'+scale+'<div class="railbox" id="railbox">'+chs+'<span class="ph" id="ph"></span></div><div class="legend"><span>日本時間 24h ─ 金の帯＝各市場の取引時間(JST)</span><span id="railNote"></span></div></div>';
 }
 function focusHTML(){
   var now=new Date();
@@ -570,10 +575,10 @@ function focusHTML(){
 function renderToday(){
   var a=(DATA&&DATA.analysis)||{};
   var now=new Date();
-  var dstr=now.toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+  var dstr=now.toLocaleDateString('ja-JP',{timeZone:'Asia/Tokyo',year:'numeric',month:'long',day:'numeric',weekday:'short'});
   var H='';
   H+='<div class="card hero">'+
-     '<div class="date">'+dstr+' ・ UTC <span id="utc2" class="mono">--:--</span></div>'+
+     '<div class="date">'+dstr+' ・ 日本 <span id="jst2" class="mono">--:--</span> ・ UTC <span id="utc2" class="mono">--:--</span></div>'+
      '<div class="cdrow"><div class="big mono" id="heroCd">--:--:--</div><div class="lab" id="heroLab">—</div></div>'+
      '<div class="chips"><span class="chip">米CPIまで <b class="mono" id="cpiCd">--</b> <span style="opacity:.7">水21:30 JST</span></span></div>'+
      railHTML()+'</div>';
@@ -794,7 +799,7 @@ function openPair(p){
   var arr=DATA&&DATA.spark&&(DATA.spark[cf.q]||DATA.spark[p]);
   var refs=[];if(pr.ma50)refs.push({v:+pr.ma50,label:'MA50'});if(pr.ma200)refs.push({v:+pr.ma200,label:'MA200'});
   requestAnimationFrame(function(){drawSpark($('#bigcv'),arr,{big:true,refs:refs});});
-  var go=$('#shBody [data-gosc]');if(go)go.onclick=function(){SC.cur=p;closeSheets();showTab('score');scRender();};
+  var go=$('#shBody [data-gosc]');if(go)go.onclick=function(){SC.cur=p;closeSheets(true);showTab('score');scRender();};
   if(navigator.vibrate&&!RM)try{navigator.vibrate(6);}catch(e){}
 }
 function closeSheets(skipHist){
@@ -889,8 +894,11 @@ window.addEventListener('hashchange',route);
 function tick(){
   var now=new Date();
   var t=now.toISOString();
-  var u=$('#utc');if(u)u.textContent=t.slice(11,19)+'Z';
+  var jt=new Date(now.getTime()+9*36e5).toISOString();
+  var u=$('#utc');if(u)u.textContent='UTC '+t.slice(11,16);
+  var j=$('#jst');if(j)j.textContent=jt.slice(11,19)+' JST';
   var u2=$('#utc2');if(u2)u2.textContent=t.slice(11,16);
+  var j2=$('#jst2');if(j2)j2.textContent=jt.slice(11,16);
   // hero countdown: next session open among all
   var order=['SYD','TOK','LDN','NY'],nextK=null,nextMs=null;
   order.forEach(function(k){if(!sesActive(k,now)){var ms=msUntilOpen(k,now);if(ms!=null&&(nextMs==null||ms<nextMs)){nextMs=ms;nextK=k;}}});
@@ -904,10 +912,10 @@ function tick(){
   // CPI chip
   var cpi=nextWed1230()-now.getTime(),ce=$('#cpiCd');
   if(ce){if(cpi<=0)ce.textContent='発表時間帯';else{var d=Math.floor(cpi/864e5),hh=Math.floor(cpi%864e5/36e5),mm=Math.floor(cpi%36e5/6e4);ce.textContent=d+'日'+pad(hh)+':'+pad(mm);}}
-  // rail playhead + channel live state
+  // rail playhead (JST axis) + channel live state
   var ph=$('#ph');
   if(ph){
-    var mins=now.getUTCHours()*60+now.getUTCMinutes()+now.getUTCSeconds()/60;
+    var mins=(now.getUTCHours()*60+now.getUTCMinutes()+now.getUTCSeconds()/60+540)%1440;
     ph.style.left='calc('+(mins/14.4)+'% - 1px)';
     order.forEach(function(k){var ch=document.querySelector('[data-ch="'+k+'"]');if(ch)ch.classList.toggle('live',sesActive(k,now));});
     var rn=$('#railNote');if(rn){var openNames=order.filter(function(k){return sesActive(k,now);}).map(function(k){return SESS[k].jp;});rn.textContent=openNames.length?('▶ '+openNames.join('・')):'休場時間帯';}
@@ -916,7 +924,7 @@ function tick(){
   $$('[data-co]').forEach(function(el){
     var p=el.getAttribute('data-co');var st=pairSession(p,now);
     el.classList.toggle('on',st.active);
-    el.textContent=st.active?('⚡'+st.activeName):(st.next?(st.next.name+' '+fmtDur(st.next.ms)):'—');
+    el.textContent=st.active?((st.activeName==='NY'?'':'⚡')+st.activeName):(st.next?(st.next.name+' '+fmtDur(st.next.ms)):'—');
   });
 }
 setInterval(tick,1000);
