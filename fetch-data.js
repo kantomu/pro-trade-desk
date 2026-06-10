@@ -50,6 +50,7 @@ async function getPrices(errors) {
     await sleep(300); // spacing to respect free-tier limits
   }
   if (prices.EURUSD && prices.USDJPY) prices.EURJPY = { price: +(prices.EURUSD.price * prices.USDJPY.price).toFixed(2), derived: true };
+  if (prices.GBPUSD && prices.USDJPY) prices.GBPJPY = { price: +(prices.GBPUSD.price * prices.USDJPY.price).toFixed(2), derived: true };
   return prices;
 }
 function calcStrength(p) {
@@ -69,7 +70,7 @@ async function getYields() {
 }
 
 /* ---------- CFTC: COT (official API, parallel) ---------- */
-const COTDEF = { GOLD: "%GOLD - COMMODITY EXCHANGE%", EUR: "%EURO FX -%", JPY: "%JAPANESE YEN -%", GBP: "%BRITISH POUND%" };
+const COTDEF = { GOLD: "%GOLD - COMMODITY EXCHANGE%", EUR: "%EURO FX -%", JPY: "%JAPANESE YEN -%", GBP: "%BRITISH POUND%", AUD: "%AUSTRALIAN DOLLAR%", CAD: "%CANADIAN DOLLAR%" };
 async function getCOT(errors, prevCot) {
   const cot = { ...(prevCot || {}) };
   await Promise.all(Object.entries(COTDEF).map(async ([k, like]) => {
@@ -88,7 +89,7 @@ async function getCOT(errors, prevCot) {
 }
 
 /* ---------- Myfxbook: retail positions (optional, needs free login) ---------- */
-const RETAIL_PAIRS = ["XAUUSD", "EURUSD", "USDJPY", "EURJPY", "GBPUSD"];
+const RETAIL_PAIRS = ["XAUUSD", "EURUSD", "USDJPY", "EURJPY", "GBPUSD", "AUDUSD", "USDCAD", "GBPJPY"];
 async function getRetail(errors) {
   if (!MFX_EMAIL || !MFX_PASS) return null; // not configured -> AI estimate used instead
   try {
@@ -156,10 +157,19 @@ async function getAnalysis(out, news, errors) {
   const prompt = `あなたはFX/ゴールドのトレードデスク・アナリストです。以下の確定数値とニュース要約を根拠に、日本語で判断材料をまとめてください。
 価格:${JSON.stringify(out.prices)} 利回り:${JSON.stringify(out.yields)} 強弱:${JSON.stringify(out.strength)} COT:${JSON.stringify(out.cot)}
 ニュース要約:${news ? news.slice(0, 2000) : "（なし）"}
-対象:XAUUSD,EURUSD,USDJPY,EURJPY,GBPUSD。手法=1H/15M/5M・エリオット第3波・セッション・ティア別。
-news欄とbank欄はニュース要約の内容を反映（要約が無い項目は数値・水準からの地合いを書き、不明は"要確認"）。retailは要約や一般的傾向からの推定（数値は後で実測で上書きされる場合あり）。
+対象8銘柄と各特徴（必ず特徴とファンダを踏まえて分析）:
+- XAUUSD ゴールド: 実質金利・有事/地政学・ドル逆相関。
+- EURUSD: 最大流動性、対ドル基軸。ECB/独経済・米金利差。
+- USDJPY: 日米金利差・リスク選好・介入警戒(年初来高値圏)。
+- EURJPY: リスク選好クロス(EURUSD×USDJPY)。
+- GBPUSD: 英BOE金利・対ドル。
+- AUDUSD: 資源国通貨・中国景気・リスク選好の代理。豪準備銀/コモディティ。
+- USDCAD: 原油相関(逆相関:原油高→CAD高→USDCAD安)・北米指標。
+- GBPJPY: 高ボラティリティ、リスク選好バロメーター(GBPUSD×USDJPY)。
+手法=1H/15M/5M・エリオット第3波・セッション・ティア別。
+news欄とbank欄はニュース要約を反映（無い項目は数値・水準・移動平均・利回り・COTからの地合いを書き、不明は"要確認"）。各ペアのcotReadは該当通貨のCOTと価格の整合/乖離に言及。retailは要約や一般傾向からの推定（数値は後で実測上書きの場合あり）。
 重要: 出力はJSONオブジェクトだけ。前置き・Markdown・コードフェンス・コメントは付けない。文字列中に改行やダブルクォートを入れない。各文は簡潔に1〜2文。スキーマ:
-{"overview":"","strengthRead":"","riskMacro":"","scenario":"","cotReading":"","retail":{"XAUUSD":{"s":59,"l":41,"note":""},"EURUSD":{},"USDJPY":{},"EURJPY":{},"GBPUSD":{}},"bank":{"drivers":"","intervention":"","risk":"","rangeUSDJPY":"","rangeEURJPY":""},"pairs":{"XAUUSD":{"bias":"","trend":"","news":"","strategy":"","levels":"","cotRead":"","risk":""},"EURUSD":{},"USDJPY":{},"EURJPY":{},"GBPUSD":{}}}`;
+{"overview":"","strengthRead":"","riskMacro":"","scenario":"","cotReading":"","retail":{"XAUUSD":{"s":59,"l":41,"note":""},"EURUSD":{},"USDJPY":{},"EURJPY":{},"GBPUSD":{},"AUDUSD":{},"USDCAD":{},"GBPJPY":{}},"bank":{"drivers":"","intervention":"","risk":"","rangeUSDJPY":"","rangeEURJPY":""},"pairs":{"XAUUSD":{"bias":"","trend":"","news":"","strategy":"","levels":"","cotRead":"","risk":""},"EURUSD":{},"USDJPY":{},"EURJPY":{},"GBPUSD":{},"AUDUSD":{},"USDCAD":{},"GBPJPY":{}}}`;
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 120000);
   try {
