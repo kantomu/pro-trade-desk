@@ -134,7 +134,7 @@ async function getNews(errors) {
   if (!ANTHROPIC || !NEWS_ON) return null;
   const today = new Date().toISOString().slice(0, 10);
   let messages = [{ role: "user", content: `本日(${today})の為替・ゴールド市場について、日本語で簡潔に要約してください。重視: USDJPY/EURUSD/EURJPY/GBPUSD/XAUUSD。含めるもの: (1)主要ニュース・値動きの背景, (2)銀行・調査機関の見解(三菱UFJ/MUFG・三井住友/SMBC・みずほ・InvestingLive等), (3)直近の重要経済指標の予定(米CPI等)と通過済みの結果, (4)ドル円の介入観測。各項目に出所名を併記。箇条書きで300〜500字程度。` }];
-  const tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 4 }];
+  const tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }];
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 100000);
   try {
@@ -167,9 +167,9 @@ async function getAnalysis(out, news, errors) {
 - USDCAD: 原油相関(逆相関:原油高→CAD高→USDCAD安)・北米指標。
 - GBPJPY: 高ボラティリティ、リスク選好バロメーター(GBPUSD×USDJPY)。
 手法=1H/15M/5M・エリオット第3波・セッション・ティア別。
-news欄とbank欄はニュース要約を反映（無い項目は数値・水準・移動平均・利回り・COTからの地合いを書き、不明は"要確認"）。各ペアのcotReadは該当通貨のCOTと価格の整合/乖離に言及。retailは要約や一般傾向からの推定（数値は後で実測上書きの場合あり）。
+news欄とbank欄はニュース要約を反映（無い項目は数値・水準・移動平均・利回り・COTからの地合いを書き、不明は"要確認"）。bank.summaryはニュース全体を2〜3文に凝縮。bank.banksは各機関(MUFG/三井住友/みずほ/野村/Goldman/OANDA/外為どっとコム等)の見解を1社1文で要約（取得できた範囲のみ、無ければ[]）。各ペアのcotReadは該当通貨のCOTと価格の整合/乖離に言及。retailは要約や一般傾向からの推定（数値は後で実測上書きの場合あり）。
 重要: 出力はJSONオブジェクトだけ。前置き・Markdown・コードフェンス・コメントは付けない。文字列中に改行やダブルクォートを入れない。各文は簡潔に1〜2文。スキーマ:
-{"overview":"","strengthRead":"","riskMacro":"","scenario":"","cotReading":"","retail":{"XAUUSD":{"s":59,"l":41,"note":""},"EURUSD":{},"USDJPY":{},"EURJPY":{},"GBPUSD":{},"AUDUSD":{},"USDCAD":{},"GBPJPY":{}},"bank":{"drivers":"","intervention":"","risk":"","rangeUSDJPY":"","rangeEURJPY":""},"pairs":{"XAUUSD":{"bias":"","trend":"","news":"","strategy":"","levels":"","cotRead":"","risk":""},"EURUSD":{},"USDJPY":{},"EURJPY":{},"GBPUSD":{},"AUDUSD":{},"USDCAD":{},"GBPJPY":{}}}`;
+{"overview":"","strengthRead":"","riskMacro":"","scenario":"","cotReading":"","retail":{"XAUUSD":{"s":59,"l":41,"note":""},"EURUSD":{},"USDJPY":{},"EURJPY":{},"GBPUSD":{},"AUDUSD":{},"USDCAD":{},"GBPJPY":{}},"bank":{"summary":"","banks":[{"name":"","view":""}],"drivers":"","intervention":"","risk":"","rangeUSDJPY":"","rangeEURJPY":""},"pairs":{"XAUUSD":{"bias":"","trend":"","news":"","strategy":"","levels":"","cotRead":"","risk":""},"EURUSD":{},"USDJPY":{},"EURJPY":{},"GBPUSD":{},"AUDUSD":{},"USDCAD":{},"GBPJPY":{}}}`;
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 120000);
   try {
@@ -212,6 +212,9 @@ catch (e) { errors.push("cot: " + e.message + "→前回値を維持"); }
 // 4) retail (optional live) + 5) news (web_search) in parallel
 const [retail, news] = await Promise.all([getRetail(errors), getNews(errors)]);
 if (news) { out.news = news; out.freshness.news = now; }
+
+// pace AI calls: keep news + analysis in separate minutes (input-token/min rate limit)
+if (news && ANTHROPIC) await sleep(65000);
 
 // 6) structured analysis (uses numbers + news)
 const a = await getAnalysis(out, out.news, errors);
