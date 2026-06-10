@@ -30,19 +30,24 @@ async function loadPrev() {
   return {};
 }
 
-/* ---------- FMP: prices/gold/index (1 batched call) ---------- */
+/* ---------- FMP: prices/gold/index (single-symbol, free-tier safe) ---------- */
 const FX = ["EURUSD", "USDJPY", "GBPUSD", "AUDUSD", "USDCHF", "USDCAD"];
+async function fmpQuote(sym) {
+  const a = await getJSON(`https://financialmodelingprep.com/stable/quote?symbol=${sym}&apikey=${FMP}`);
+  return Array.isArray(a) ? a[0] : a;
+}
 async function getPrices(errors) {
-  const list = [...FX, "GCUSD", "%5EGSPC"].join(",");
-  let arr;
-  try { arr = await withRetry(() => getJSON(`https://financialmodelingprep.com/stable/quote?symbol=${list}&apikey=${FMP}`)); }
-  catch (e) { errors.push("FMP quote: " + e.message); return {}; }
-  if (!Array.isArray(arr)) arr = arr ? [arr] : [];
+  const syms = [...FX, "GCUSD", "%5EGSPC"];
   const prices = {};
-  for (const q of arr) {
-    if (!q || !q.symbol) continue;
-    const key = q.symbol.replace("^", "");
-    prices[key] = { price: q.price, chg: (q.changePercentage ?? q.changesPercentage), low: q.dayLow, high: q.dayHigh, ma50: q.priceAvg50, ma200: q.priceAvg200, yearHigh: q.yearHigh, yearLow: q.yearLow };
+  for (const s of syms) {
+    try {
+      const q = await withRetry(() => fmpQuote(s));
+      if (q) {
+        const key = s === "%5EGSPC" ? "GSPC" : s;
+        prices[key] = { price: q.price, chg: (q.changePercentage ?? q.changesPercentage), low: q.dayLow, high: q.dayHigh, ma50: q.priceAvg50, ma200: q.priceAvg200, yearHigh: q.yearHigh, yearLow: q.yearLow };
+      }
+    } catch (e) { errors.push("FMP " + s + ": " + e.message); }
+    await sleep(300); // spacing to respect free-tier limits
   }
   if (prices.EURUSD && prices.USDJPY) prices.EURJPY = { price: +(prices.EURUSD.price * prices.USDJPY.price).toFixed(2), derived: true };
   return prices;
