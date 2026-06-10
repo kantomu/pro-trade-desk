@@ -1,10 +1,14 @@
-// fetch-data.js — GitHub Actions, every 3h. Resilient + rate-limit safe.
+// fetch-data.js — GitHub Actions, every 3h. Full multi-source, resilient.
+// Each source is isolated: a failure keeps the last-good value, never blanks the app.
 import { writeFileSync, readFileSync, existsSync } from "node:fs";
 
 const FMP = process.env.FMP_API_KEY;
 const ANTHROPIC = process.env.ANTHROPIC_API_KEY;
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
 const PREV_URL = process.env.PREV_DATA_URL;
+const MFX_EMAIL = process.env.MYFXBOOK_EMAIL;     // optional: enables live retail
+const MFX_PASS = process.env.MYFXBOOK_PASSWORD;   // optional
+const NEWS_ON = process.env.DISABLE_NEWS !== "1"; // set DISABLE_NEWS=1 to skip web_search (saves cost)
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function getJSON(url, opt) {
@@ -15,41 +19,34 @@ async function getJSON(url, opt) {
 async function withRetry(fn, n = 2) {
   let last;
   for (let i = 0; i <= n; i++) {
-    try { return await fn(); } catch (e) { last = e; if (i < n) await sleep(1000 * (i + 1)); }
+    try { return await fn(); }
+    catch (e) { last = e; if (String(e.message).includes("429")) break; if (i < n) await sleep(1000 * (i + 1)); }
   }
   throw last;
 }
-
 async function loadPrev() {
   if (PREV_URL) { try { const r = await fetch(PREV_URL + "?t=" + Date.now()); if (r.ok) return await r.json(); } catch {} }
   try { if (existsSync("data.json")) return JSON.parse(readFileSync("data.json", "utf8")); } catch {}
   return {};
 }
 
+/* ---------- FMP: prices/gold/index (1 batched call) ---------- */
 const FX = ["EURUSD", "USDJPY", "GBPUSD", "AUDUSD", "USDCHF", "USDCAD"];
-async function fmpQuote(sym) {
-  const a = await getJSON(`https://financialmodelingprep.com/stable/quote?symbol=${sym}&apikey=${FMP}`);
-  return Array.isArray(a) ? a[0] : a;
-}
-
-// SEQUENTIAL with delay to avoid FMP 429 rate limit
 async function getPrices(errors) {
-  const syms = [...FX, "GCUSD", "%5EGSPC"];
+  const list = [...FX, "GCUSD", "%5EGSPC"].join(",");
+  let arr;
+  try { arr = await withRetry(() => getJSON(`https://financialmodelingprep.com/stable/quote?symbol=${list}&apikey=${FMP}`)); }
+  catch (e) { errors.push("FMP quote: " + e.message); return {}; }
+  if (!Array.isArray(arr)) arr = arr ? [arr] : [];
   const prices = {};
-  for (const s of syms) {
-    try {
-      const q = await withRetry(() => fmpQuote(s));
-      if (q) {
-        const key = s === "%5EGSPC" ? "GSPC" : s;
-        prices[key] = { price: q.price, chg: (q.changePercentage ?? q.changesPercentage), low: q.dayLow, high: q.dayHigh, ma50: q.priceAvg50, ma200: q.priceAvg200, yearHigh: q.yearHigh, yearLow: q.yearLow };
-      }
-    } catch (e) { errors.push("FMP " + s + ": " + e.message); }
-    await sleep(400); // rate limit spacing
+  for (const q of arr) {
+    if (!q || !q.symbol) continue;
+    const key = q.symbol.replace("^", "");
+    prices[key] = { price: q.price, chg: (q.changePercentage ?? q.changesPercentage), low: q.dayLow, high: q.dayHigh, ma50: q.priceAvg50, ma200: q.priceAvg200, yearHigh: q.yearHigh, yearLow: q.yearLow };
   }
   if (prices.EURUSD && prices.USDJPY) prices.EURJPY = { price: +(prices.EURUSD.price * prices.USDJPY.price).toFixed(2), derived: true };
   return prices;
 }
-
 function calcStrength(p) {
   const vsUSD = { USD: 0, EUR: p.EURUSD?.chg, GBP: p.GBPUSD?.chg, AUD: p.AUDUSD?.chg, JPY: p.USDJPY ? -p.USDJPY.chg : undefined, CHF: p.USDCHF ? -p.USDCHF.chg : undefined, CAD: p.USDCAD ? -p.USDCAD.chg : undefined };
   const vals = Object.values(vsUSD).filter((v) => typeof v === "number");
@@ -58,14 +55,15 @@ function calcStrength(p) {
   return Object.entries(vsUSD).filter(([, v]) => typeof v === "number").map(([ccy, v]) => ({ ccy, score: +(v - mean).toFixed(2) })).sort((a, b) => b.score - a.score);
 }
 
+/* ---------- FMP: treasury yields ---------- */
 async function getYields() {
-  await sleep(500); // spacing after prices batch
   const to = new Date().toISOString().slice(0, 10), from = new Date(Date.now() - 12 * 864e5).toISOString().slice(0, 10);
   const a = await withRetry(() => getJSON(`https://financialmodelingprep.com/stable/treasury-rates?from=${from}&to=${to}&apikey=${FMP}`));
   if (a && a[0]) return { y2: a[0].year2, y10: a[0].year10, date: a[0].date };
   throw new Error("no rows");
 }
 
+/* ---------- CFTC: COT (official API, parallel) ---------- */
 const COTDEF = { GOLD: "%GOLD - COMMODITY EXCHANGE%", EUR: "%EURO FX -%", JPY: "%JAPANESE YEN -%", GBP: "%BRITISH POUND%" };
 async function getCOT(errors, prevCot) {
   const cot = { ...(prevCot || {}) };
@@ -84,7 +82,37 @@ async function getCOT(errors, prevCot) {
   return cot;
 }
 
-// JSON repair: fix trailing commas and extract clean outermost braces
+/* ---------- Myfxbook: retail positions (optional, needs free login) ---------- */
+const RETAIL_PAIRS = ["XAUUSD", "EURUSD", "USDJPY", "EURJPY", "GBPUSD"];
+async function getRetail(errors) {
+  if (!MFX_EMAIL || !MFX_PASS) return null; // not configured -> AI estimate used instead
+  try {
+    const login = await getJSON(`https://www.myfxbook.com/api/login.json?email=${encodeURIComponent(MFX_EMAIL)}&password=${encodeURIComponent(MFX_PASS)}`);
+    if (!login || login.error || !login.session) throw new Error("login " + (login && login.message || "failed"));
+    const out = await getJSON(`https://www.myfxbook.com/api/get-community-outlook.json?session=${encodeURIComponent(login.session)}`);
+    const syms = (out && out.symbols) || [];
+    const retail = {};
+    for (const s of syms) {
+      const name = (s.name || "").toUpperCase();
+      if (RETAIL_PAIRS.includes(name)) {
+        const sp = Math.round(+(s.shortPercentage ?? s.shortPositionsPercentage ?? 0));
+        const lp = Math.round(+(s.longPercentage ?? s.longPositionsPercentage ?? 0));
+        if (sp || lp) retail[name] = { s: sp, l: lp };
+      }
+    }
+    return Object.keys(retail).length ? retail : null;
+  } catch (e) { errors.push("Myfxbook: " + e.message); return null; }
+}
+
+/* ---------- Anthropic helpers ---------- */
+async function callAnthropic(payload, signal) {
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-api-key": ANTHROPIC, "anthropic-version": "2023-06-01" },
+    body: JSON.stringify(payload), signal
+  });
+  return r.json();
+}
 function repairJSON(s) {
   s = s.replace(/,\s*([\]}])/g, "$1");
   let depth = 0, start = -1, end = -1;
@@ -92,68 +120,98 @@ function repairJSON(s) {
     if (s[i] === "{") { if (depth === 0) start = i; depth++; }
     if (s[i] === "}") { depth--; if (depth === 0) { end = i; break; } }
   }
-  if (start >= 0 && end > start) return s.slice(start, end + 1);
-  return s;
+  return (start >= 0 && end > start) ? s.slice(start, end + 1) : s;
 }
 
-async function getAnalysis(out, errors) {
+/* ---------- News/bank via web_search (separate prose call; pause_turn handled) ---------- */
+async function getNews(errors) {
+  if (!ANTHROPIC || !NEWS_ON) return null;
+  const today = new Date().toISOString().slice(0, 10);
+  let messages = [{ role: "user", content: `本日(${today})の為替・ゴールド市場について、日本語で簡潔に要約してください。重視: USDJPY/EURUSD/EURJPY/GBPUSD/XAUUSD。含めるもの: (1)主要ニュース・値動きの背景, (2)銀行・調査機関の見解(三菱UFJ/MUFG・三井住友/SMBC・みずほ・InvestingLive等), (3)直近の重要経済指標の予定(米CPI等)と通過済みの結果, (4)ドル円の介入観測。各項目に出所名を併記。箇条書きで300〜500字程度。` }];
+  const tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 4 }];
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 100000);
+  try {
+    for (let i = 0; i < 5; i++) {
+      const data = await callAnthropic({ model: MODEL, max_tokens: 1500, messages, tools }, ctrl.signal);
+      if (data.type === "error") { errors.push("News: " + ((data.error && data.error.message) || "error")); return null; }
+      messages.push({ role: "assistant", content: data.content });
+      if (data.stop_reason === "pause_turn") continue; // continue the tool turn
+      const text = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n").trim();
+      return text || null;
+    }
+    return null;
+  } catch (e) { errors.push("News: " + (e.name === "AbortError" ? "timeout" : e.message)); return null; }
+  finally { clearTimeout(t); }
+}
+
+/* ---------- Structured analysis (no tools -> clean JSON) ---------- */
+async function getAnalysis(out, news, errors) {
   if (!ANTHROPIC) { errors.push("ANTHROPIC_API_KEY 未設定"); return null; }
-  const prompt = `あなたはFX/ゴールドのトレードデスク・アナリストです。以下の確定数値（最新のライブ値）を根拠に、日本語で判断材料をまとめてください。
+  const prompt = `あなたはFX/ゴールドのトレードデスク・アナリストです。以下の確定数値とニュース要約を根拠に、日本語で判断材料をまとめてください。
 価格:${JSON.stringify(out.prices)} 利回り:${JSON.stringify(out.yields)} 強弱:${JSON.stringify(out.strength)} COT:${JSON.stringify(out.cot)}
+ニュース要約:${news ? news.slice(0, 2000) : "（なし）"}
 対象:XAUUSD,EURUSD,USDJPY,EURJPY,GBPUSD。手法=1H/15M/5M・エリオット第3波・セッション・ティア別。
-ニュースは具体的な見出しを創作せず、価格・水準・移動平均・利回り・COTから読み取れる地合いを書く（不明は"要確認"）。retailは一般的傾向の推定に留める。
-重要: 出力はJSONオブジェクトだけ。前置き・Markdown・コードフェンス・コメントは一切付けない。文字列中に改行やダブルクォートを入れない。スキーマ:
+news欄とbank欄はニュース要約の内容を反映（要約が無い項目は数値・水準からの地合いを書き、不明は"要確認"）。retailは要約や一般的傾向からの推定（数値は後で実測で上書きされる場合あり）。
+重要: 出力はJSONオブジェクトだけ。前置き・Markdown・コードフェンス・コメントは付けない。文字列中に改行やダブルクォートを入れない。各文は簡潔に1〜2文。スキーマ:
 {"overview":"","strengthRead":"","riskMacro":"","scenario":"","cotReading":"","retail":{"XAUUSD":{"s":59,"l":41,"note":""},"EURUSD":{},"USDJPY":{},"EURJPY":{},"GBPUSD":{}},"bank":{"drivers":"","intervention":"","risk":"","rangeUSDJPY":"","rangeEURJPY":""},"pairs":{"XAUUSD":{"bias":"","trend":"","news":"","strategy":"","levels":"","cotRead":"","risk":""},"EURUSD":{},"USDJPY":{},"EURJPY":{},"GBPUSD":{}}}`;
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 120000);
   try {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": ANTHROPIC, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: MODEL, max_tokens: 3000, messages: [{ role: "user", content: prompt }] }),
-      signal: ctrl.signal
-    });
-    const data = await r.json();
+    const data = await callAnthropic({ model: MODEL, max_tokens: 5000, messages: [{ role: "user", content: prompt }] }, ctrl.signal);
     if (data.type === "error") { errors.push("Anthropic: " + ((data.error && data.error.message) || "error")); return null; }
     let text = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n").trim();
     text = text.replace(/```json/gi, "").replace(/```/g, "").trim();
-    const cleaned = repairJSON(text);
-    try { return JSON.parse(cleaned); }
+    try { return JSON.parse(repairJSON(text)); }
     catch (e) { errors.push("Anthropic: parse " + e.message); return null; }
   } catch (e) { errors.push("Anthropic: " + (e.name === "AbortError" ? "timeout" : e.message)); return null; }
   finally { clearTimeout(t); }
 }
 
-// ---- main ----
+/* ---------- main ---------- */
 const prev = await loadPrev();
 const now = new Date().toISOString();
 const errors = [];
 const out = {
   updated: now,
-  prices: prev.prices || {},
-  yields: prev.yields || {},
-  strength: prev.strength || [],
-  cot: prev.cot || {},
-  analysis: prev.analysis || null,
-  freshness: prev.freshness || {},
-  errors: []
+  prices: prev.prices || {}, yields: prev.yields || {}, strength: prev.strength || [],
+  cot: prev.cot || {}, analysis: prev.analysis || null,
+  news: prev.news || null, freshness: prev.freshness || {}, errors: []
 };
 
+// 1) prices + strength
 try {
   const p = await getPrices(errors);
   if (Object.keys(p).length >= 4) { out.prices = p; out.strength = calcStrength(p); out.freshness.prices = now; }
   else errors.push("prices: 取得不足→前回値を維持");
 } catch (e) { errors.push("prices: " + e.message + "→前回値を維持"); }
 
+// 2) yields
 try { out.yields = await getYields(); out.freshness.yields = now; }
 catch (e) { errors.push("treasury: " + e.message + "→前回値を維持"); }
 
+// 3) COT
 try { out.cot = await getCOT(errors, out.cot); out.freshness.cot = now; }
 catch (e) { errors.push("cot: " + e.message + "→前回値を維持"); }
 
-const a = await getAnalysis(out, errors);
+// 4) retail (optional live) + 5) news (web_search) in parallel
+const [retail, news] = await Promise.all([getRetail(errors), getNews(errors)]);
+if (news) { out.news = news; out.freshness.news = now; }
+
+// 6) structured analysis (uses numbers + news)
+const a = await getAnalysis(out, out.news, errors);
 if (a) { out.analysis = a; out.freshness.analysis = now; }
 else if (out.analysis) errors.push("analysis: 前回値を維持");
+
+// 7) overlay REAL retail numbers on top of analysis (if fetched live)
+if (retail && out.analysis) {
+  out.analysis.retail = out.analysis.retail || {};
+  for (const [pair, v] of Object.entries(retail)) {
+    const note = (out.analysis.retail[pair] && out.analysis.retail[pair].note) || "";
+    out.analysis.retail[pair] = { s: v.s, l: v.l, note };
+  }
+  out.freshness.retail = now;
+}
 
 out.errors = errors;
 writeFileSync("data.json", JSON.stringify(out, null, 2));
