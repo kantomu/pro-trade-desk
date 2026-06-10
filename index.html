@@ -235,12 +235,14 @@ function cotRetailHTML(a){
 }
 function bankHTML(a){
   var b=(a&&a.bank)||{};
+  var news=DATA.news||'';
+  var newsBlock = news ? '<h4 style="color:#56b6c2">市場ニュース（web検索）</h4><p style="font-size:13px;line-height:1.65">'+news.replace(/[<>]/g,function(c){return c==='<'?'&lt;':'&gt;';}).replace(/\n+/g,'<br>')+'</p>' : '';
   var wk=(b.rangeUSDJPY||b.rangeEURJPY)?'<div class="week">'+(b.rangeUSDJPY?'<div class="ev">USDJPY 予想 <b>'+b.rangeUSDJPY+'</b></div>':'')+(b.rangeEURJPY?'<div class="ev">EURJPY 予想 <b>'+b.rangeEURJPY+'</b></div>':'')+'</div>':'';
-  var inner=wk+(b.drivers?'<h4 style="color:#56b6c2">ドライバー</h4><p>'+b.drivers+' <span class="src">InvestingLive</span><span class="src">みずほ</span><span class="src">SMBC</span><span class="src">MUFG</span></p>':'')+
+  var inner=newsBlock+wk+(b.drivers?'<h4 style="color:#56b6c2">ドライバー</h4><p>'+b.drivers+' <span class="src">InvestingLive</span><span class="src">みずほ</span><span class="src">SMBC</span><span class="src">MUFG</span></p>':'')+
     (b.intervention?'<h4 style="color:#56b6c2">介入警戒</h4><p>'+b.intervention+' <span class="src">SMBC</span><span class="src">Minkabu</span></p>':'')+
     (b.risk?'<h4 style="color:#56b6c2">リスク</h4><p>'+b.risk+'</p>':'')+
-    (!b.drivers?'<p class="q">分析未生成。ANTHROPIC_API_KEY設定で自動生成されます。</p>':'');
-  return acc('#56b6c2','銀行・ニュース要約','集約',inner,false);
+    ((!news&&!b.drivers)?'<p class="q">未生成。ANTHROPIC_API_KEY設定（＋web検索）で自動生成されます。</p>':'');
+  return acc('#56b6c2','銀行・ニュース要約',news?'web検索＋集約':'集約',inner,false);
 }
 function pairHTML(p,a){
   var cf=PC[p],pr=DATA.prices[cf.q]||{},pa=(a&&a.pairs&&a.pairs[p])||{};
