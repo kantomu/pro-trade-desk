@@ -91,6 +91,22 @@ details[open] .ct .f{animation:grow .7s cubic-bezier(.2,.85,.25,1) both}@keyfram
 .star.up{color:var(--up);border:1px solid color-mix(in srgb,var(--up) 55%,transparent)}.star.down{color:var(--down);border:1px solid color-mix(in srgb,var(--down) 55%,transparent)}
 .ptag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;margin:0 0 6px}
 summary.sum{flex-wrap:wrap}
+.bankrow{display:flex;gap:9px;padding:7px 0;border-top:1px solid var(--border)}
+.bankname{flex:none;width:92px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#56b6c2;font-weight:700;line-height:1.5}
+.bankview{flex:1;font-size:12.2px;line-height:1.55}
+.topic{margin:11px 0 3px;display:flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.5px;text-transform:uppercase}
+.topic .tg{font-size:11px}
+.topic.dr{color:#7bb7ff}.topic.iv{color:var(--gold)}.topic.rk{color:var(--down)}
+.bsummary{font-size:13.2px;line-height:1.7;padding:10px 12px;background:var(--panel2);border:1px solid var(--border);border-radius:10px;margin-bottom:4px}
+/* widget builder */
+.wbuild{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0 4px}
+.wchip{font-family:'JetBrains Mono',monospace;font-size:11px;padding:7px 11px;border-radius:9px;border:1px solid var(--border);background:var(--panel2);color:var(--muted);cursor:pointer;user-select:none}
+.wchip.on{color:var(--bg);background:#8ab4ff;border-color:#8ab4ff;font-weight:700}
+.wlink{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.wurl{flex:1;min-width:180px;font-family:'JetBrains Mono',monospace;font-size:10.5px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--muted);word-break:break-all}
+.wbtn{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:8px 12px;border-radius:9px;border:1px solid #8ab4ff;background:transparent;color:#8ab4ff;cursor:pointer;text-decoration:none;white-space:nowrap}
+.wprev{margin-top:11px;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#080a0e}
+.wprev iframe{width:100%;height:300px;border:0;display:block}
 footer{margin-top:22px;padding-top:14px;border-top:1px solid var(--border);color:var(--muted);font-size:10.5px;line-height:1.7}
 </style>
 </head>
@@ -158,6 +174,7 @@ async function load(){
 /* ---------- helpers ---------- */
 function sgn(x){return x>0?1:x<0?-1:0;}
 function fmtN(n){return (n==null||isNaN(n))?'—':Number(n).toLocaleString('en-US');}
+function esc(s){return String(s==null?'':s).replace(/[<>&]/g,function(c){return c==='<'?'&lt;':c==='>'?'&gt;':'&amp;';});}
 function acc(accent,ttl,sub,inner,open){return '<details class="acc" style="--accent:'+accent+'"'+(open?' open':'')+'><summary class="sum"><span class="dot"></span><span class="ttl">'+ttl+'</span><span class="sub">'+(sub||'')+'</span><span class="chev">▸</span></summary><div class="inner">'+inner+'</div></details>';}
 function divBar(sign,wpct,labelHtml,col){ // sign +1 right(green)/-1 left(red)
   var fill='<span class="f '+(sign>0?'pos':'neg')+'" style="width:'+Math.min(100,wpct)+'%"></span>';
@@ -229,9 +246,10 @@ function render(offline){
   var act=ranked.filter(r=>r.active),ina=ranked.filter(r=>!r.active);
   if(act.length){ H+='<div class="subdiv on">⚡ 時間帯優位（取引時間中・上位表示）</div>'; act.forEach(r=>H+=pairHTML(r.p,a,r.st,r.cv)); H+='<div class="subdiv">その他（時間帯優位なし・参考）</div>'; ina.forEach(r=>H+=pairHTML(r.p,a,r.st,r.cv)); }
   else { ranked.forEach(r=>H+=pairHTML(r.p,a,r.st,r.cv)); }
+  H+=widgetBuilderHTML();
   document.getElementById('app').innerHTML=H;
   document.getElementById('foot').innerHTML='<b>情報源</b>：FMP（価格・指数・金利）/ CFTC（COT）/ Myfxbook・FXSSI（個人）/ SMBC・みずほ・MUFG・InvestingLive・Web（ニュース）。サーバー側で3時間ごと取得→本アプリは描画のみ。判断材料であり売買助言ではありません。'+(d.errors&&d.errors.length?'<br><span class="q">取得メモ: '+d.errors.join(' / ')+'</span>':'');
-  initSC(); bindSrc(); bindDetailsAnim();
+  initSC(); bindSrc(); bindDetailsAnim(); wbBind();
 }
 function renderPulse(){
   var p=DATA.prices,y=DATA.yields,row='';
@@ -276,15 +294,40 @@ function cotRetailHTML(a){
 }
 function bankHTML(a){
   var b=(a&&a.bank)||{};
-  var news=DATA.news||'';
-  var newsBlock = news ? '<h4 style="color:#56b6c2">市場ニュース（web検索）</h4><p style="font-size:13px;line-height:1.65">'+news.replace(/[<>]/g,function(c){return c==='<'?'&lt;':'&gt;';}).replace(/\n+/g,'<br>')+'</p>' : '';
-  var wk=(b.rangeUSDJPY||b.rangeEURJPY)?'<div class="week">'+(b.rangeUSDJPY?'<div class="ev">USDJPY 予想 <b>'+b.rangeUSDJPY+'</b></div>':'')+(b.rangeEURJPY?'<div class="ev">EURJPY 予想 <b>'+b.rangeEURJPY+'</b></div>':'')+'</div>':'';
-  var inner=newsBlock+wk+(b.drivers?'<h4 style="color:#56b6c2">ドライバー</h4><p>'+b.drivers+' <span class="src">InvestingLive</span><span class="src">みずほ</span><span class="src">SMBC</span><span class="src">MUFG</span></p>':'')+
-    (b.intervention?'<h4 style="color:#56b6c2">介入警戒</h4><p>'+b.intervention+' <span class="src">SMBC</span><span class="src">Minkabu</span></p>':'')+
-    (b.risk?'<h4 style="color:#56b6c2">リスク</h4><p>'+b.risk+'</p>':'')+
-    ((!news&&!b.drivers)?'<p class="q">未生成。ANTHROPIC_API_KEY設定（＋web検索）で自動生成されます。</p>':'');
-  return acc('#56b6c2','銀行・ニュース要約',news?'web検索＋集約':'集約',inner,false);
+  var summary=b.summary?'<div class="bsummary">'+esc(b.summary)+'</div>':'';
+  var banks=(b.banks&&b.banks.length)?'<div class="topic dr"><span class="tg">🏦</span>各社ビュー</div>'+
+    b.banks.filter(x=>x&&(x.name||x.view)).map(x=>'<div class="bankrow"><span class="bankname">'+esc(x.name||'—')+'</span><span class="bankview">'+esc(x.view||'')+'</span></div>').join(''):'';
+  var wk=(b.rangeUSDJPY||b.rangeEURJPY)?'<div class="week" style="margin-top:10px">'+(b.rangeUSDJPY?'<div class="ev">USDJPY 予想 <b>'+esc(b.rangeUSDJPY)+'</b></div>':'')+(b.rangeEURJPY?'<div class="ev">EURJPY 予想 <b>'+esc(b.rangeEURJPY)+'</b></div>':'')+'</div>':'';
+  var dr=b.drivers?'<div class="topic dr"><span class="tg">⚙</span>ドライバー</div><p>'+esc(b.drivers)+'</p>':'';
+  var iv=b.intervention?'<div class="topic iv"><span class="tg">⚠</span>介入警戒</div><p>'+esc(b.intervention)+'</p>':'';
+  var rk=b.risk?'<div class="topic rk"><span class="tg">▲</span>リスク</div><p>'+esc(b.risk)+'</p>':'';
+  var has=summary||banks||dr||iv||rk||wk;
+  var inner=summary+banks+wk+dr+iv+rk+(has?'':'<p class="q">未生成。ANTHROPIC_API_KEY設定（＋web検索）で自動生成されます。</p>');
+  return acc('#56b6c2','銀行・ニュース要約',b.summary?'各社集約':'集約',inner,false);
 }
+/* ---------- widget builder ---------- */
+var WB={overview:true,news:true,session:true,top:false,strength:false,score:false};
+var WB_DEF=[['overview','概況'],['news','ニュース要約'],['session','セッション'],['top','主要レート'],['strength','通貨強弱'],['score','本日の妙味']];
+function widgetURL(){var on=WB_DEF.filter(d=>WB[d[0]]).map(d=>d[0]);if(!on.length)on=['overview'];return './widget.html?b='+on.join(',');}
+function widgetBuilderHTML(){
+  return acc('#8ab4ff','ウィジェット','ホーム画面用の一目ビューを作成',
+    '<p class="note">表示したい項目を選ぶ→「開く↗」でプレビュー→ブラウザのメニューから<b>ホーム画面に追加</b>（Galaxyは Chrome右上 ⋮ →「ホーム画面に追加」）。<br>※PWAの仕様上これは“生きたウィジェット”ではなく<b>1タップで開くコンパクト表示</b>です。常時表示の本物ウィジェットが必要なら、無料アプリ <b>KWGT</b> で下のJSONを読む方法があります（任意）。</p>'+
+    '<div class="wbuild" id="wbChips"></div>'+
+    '<div class="wlink"><span class="wurl" id="wbUrl"></span><a class="wbtn" id="wbOpen" target="_blank" rel="noopener">開く ↗</a></div>'+
+    '<p class="note" style="margin-top:9px">KWGT等で読むデータ: <span class="wurl" style="display:inline-block;min-width:0" id="wbData"></span></p>'+
+    '<div class="wprev"><iframe id="wbPrev" title="preview"></iframe></div>',false);
+}
+function wbBind(){
+  var c=document.getElementById('wbChips');if(!c)return;
+  c.innerHTML=WB_DEF.map(d=>'<span class="wchip'+(WB[d[0]]?' on':'')+'" data-b="'+d[0]+'">'+d[1]+'</span>').join('');
+  c.querySelectorAll('.wchip').forEach(ch=>ch.onclick=function(){WB[this.dataset.b]=!WB[this.dataset.b];wbBind();});
+  var u=widgetURL(),abs=new URL(u,location.href).href;
+  document.getElementById('wbUrl').textContent=abs;
+  document.getElementById('wbOpen').href=u;
+  var dataEl=document.getElementById('wbData');if(dataEl)dataEl.textContent=new URL('./data.json',location.href).href;
+  var f=document.getElementById('wbPrev');if(f&&f.getAttribute('src')!==u)f.src=u;
+}
+
 function pairHTML(p,a,st,cv){
   var cf=PC[p],pr=DATA.prices[cf.q]||{},pa=(a&&a.pairs&&a.pairs[p])||{};
   st=st||pairSession(p,new Date()); cv=cv||autoConviction(p);
