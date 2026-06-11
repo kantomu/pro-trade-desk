@@ -583,7 +583,8 @@ function renderToday(){
      '<div class="chips"><span class="chip">米CPIまで <b class="mono" id="cpiCd">--</b> <span style="opacity:.7">水21:30 JST</span></span></div>'+
      railHTML()+'</div>';
   H+=tickerHTML();
-  H+='<div class="card"><div class="chead"><span class="tag">Brief</span><span class="jp">本日の概況</span></div><p class="body">'+esc(a.overview||'分析未生成。数値は上のティッカーを参照。')+'</p></div>';
+  var staleNote=a.stale?'<div class="banner" style="margin:0 0 8px">⚠ 本日('+(a.staleAsof||'')+')のAI分析の再生成に失敗。下の文章は前回分の概況です（価格・COT等の数値は最新）。⚙設定→取得メモに原因。</div>':'';
+  H+='<div class="card"><div class="chead"><span class="tag">Brief</span><span class="jp">本日の概況</span>'+(a.asof?'<span class="r">'+esc(a.asof)+'</span>':'')+'</div>'+staleNote+'<p class="body">'+esc(a.overview||'分析未生成。数値は上のティッカーを参照。')+'</p></div>';
   H+=focusHTML();
   var p=DATA.prices||{},y=DATA.yields||{};
   function mi(n,o,dec){if(!o)return'';var c=o.chg<0?'down':'up';return '<div class="mi"><span class="n">'+n+'</span><span class="v">'+(o.price!=null?Number(o.price).toFixed(dec):'—')+'</span><span class="c '+c+'">'+(o.chg!=null?(o.chg>0?'+':'')+Number(o.chg).toFixed(2)+'%':'')+'</span></div>';}
