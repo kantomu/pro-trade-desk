@@ -151,13 +151,40 @@ async function callAnthropic(payload, signal) {
   return r.json();
 }
 function repairJSON(s) {
-  s = s.replace(/,\s*([\]}])/g, "$1");
-  let depth = 0, start = -1, end = -1;
+  // isolate from first brace
+  const first = s.indexOf("{");
+  if (first > 0) s = s.slice(first);
+  // if it already parses, done
+  try { JSON.parse(s.replace(/,\s*([\]}])/g, "$1")); return s.replace(/,\s*([\]}])/g, "$1"); } catch {}
+  // walk and track structure, ignoring string contents
+  const stack = [];
+  let inStr = false, escaped = false, lastValidEnd = -1;
   for (let i = 0; i < s.length; i++) {
-    if (s[i] === "{") { if (depth === 0) start = i; depth++; }
-    if (s[i] === "}") { depth--; if (depth === 0) { end = i; break; } }
+    const c = s[i];
+    if (inStr) {
+      if (escaped) escaped = false;
+      else if (c === "\\") escaped = true;
+      else if (c === '"') inStr = false;
+      continue;
+    }
+    if (c === '"') inStr = true;
+    else if (c === "{" || c === "[") stack.push(c === "{" ? "}" : "]");
+    else if (c === "}" || c === "]") { stack.pop(); if (stack.length === 0) lastValidEnd = i; }
   }
-  return (start >= 0 && end > start) ? s.slice(start, end + 1) : s;
+  // if a complete top-level object closed cleanly, take it
+  if (lastValidEnd > 0 && !inStr) { const cut = s.slice(0, lastValidEnd + 1); try { JSON.parse(cut); return cut; } catch {} }
+  // otherwise: truncated. Close open string, drop trailing partial token, balance brackets.
+  let t = s;
+  if (inStr) t += '"';
+  // remove a dangling ": or , at the very end (incomplete key/value)
+  t = t.replace(/[,:]\s*$/, "");
+  // remove a trailing incomplete "key" with no value
+  t = t.replace(/,\s*"[^"]*"\s*$/, "");
+  t = t.replace(/,\s*([\]}])/g, "$1");
+  while (stack.length) t += stack.pop();
+  try { JSON.parse(t); return t; } catch {}
+  // last resort: original isolated string
+  return s.replace(/,\s*([\]}])/g, "$1");
 }
 
 /* ---------- News/bank via web_search (separate prose call; pause_turn handled) ---------- */
@@ -204,15 +231,37 @@ news欄とbank欄はニュース要約を反映（無い項目は数値・水準
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 180000);
   try {
-    const data = await callAnthropic({ model: MODEL, max_tokens: 9000, messages: [{ role: "user", content: prompt }] }, ctrl.signal);
-    if (data.type === "error") { errors.push("Anthropic: " + ((data.error && data.error.message) || "error")); return null; }
-    if (data.stop_reason === "max_tokens") errors.push("Anthropic: 出力上限到達(切詰め)");
-    let text = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n").trim();
-    text = text.replace(/```json/gi, "").replace(/```/g, "").trim();
-    try { return JSON.parse(repairJSON(text)); }
-    catch (e) { errors.push("Anthropic: parse " + e.message); return null; }
-  } catch (e) { errors.push("Anthropic: " + (e.name === "AbortError" ? "timeout" : e.message)); return null; }
-  finally { clearTimeout(t); }
+    let lastErr = "";
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const data = await callAnthropic({ model: MODEL, max_tokens: 8000, messages: [{ role: "user", content: prompt }] }, ctrl.signal);
+        if (data.type === "error") {
+          const msg = (data.error && data.error.message) || "error";
+          lastErr = msg;
+          // rate-limit / overloaded -> wait and retry
+          if (/rate|overload|429|529/i.test(msg) && attempt < 3) { await sleep(20000); continue; }
+          errors.push("Anthropic: " + msg); return null;
+        }
+        const truncated = data.stop_reason === "max_tokens";
+        let text = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n").trim();
+        text = text.replace(/```json/gi, "").replace(/```/g, "").trim();
+        try {
+          const parsed = JSON.parse(repairJSON(text));
+          if (truncated) errors.push("Anthropic: 出力上限到達→部分補修で採用");
+          return parsed;
+        } catch (e) {
+          lastErr = "parse " + e.message;
+          if (attempt < 3) { await sleep(3000); continue; }
+        }
+      } catch (e) {
+        lastErr = e.name === "AbortError" ? "timeout" : e.message;
+        if (attempt < 3 && lastErr !== "timeout") { await sleep(5000); continue; }
+        break;
+      }
+    }
+    errors.push("Anthropic: " + lastErr + "（3回試行後）");
+    return null;
+  } finally { clearTimeout(t); }
 }
 
 /* ---------- main ---------- */
@@ -256,8 +305,17 @@ if (news && ANTHROPIC) await sleep(65000);
 
 // 6) structured analysis (uses numbers + news)
 const a = await getAnalysis(out, out.news, errors);
-if (a) { out.analysis = a; out.freshness.analysis = now; }
-else if (out.analysis) errors.push("analysis: 前回値を維持");
+const todayJST = new Date(Date.now() + 9 * 36e5).toISOString().slice(0, 10);
+if (a) {
+  a.asof = todayJST;
+  a.stale = false;
+  out.analysis = a;
+  out.freshness.analysis = now;
+} else if (out.analysis) {
+  out.analysis.stale = true;          // prior analysis retained, not regenerated today
+  out.analysis.staleAsof = todayJST;  // the date on which regeneration failed
+  errors.push("analysis: 生成失敗→前回分析を表示中（数値は最新）");
+}
 
 // 7) overlay REAL retail numbers on top of analysis (if fetched live)
 if (retail && out.analysis) {
