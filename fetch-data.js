@@ -226,8 +226,9 @@ async function getAnalysis(out, news, errors) {
 - GBPJPY: 高ボラティリティ、リスク選好バロメーター(GBPUSD×USDJPY)。
 手法=1H/15M/5M・エリオット第3波・セッション・ティア別。
 news欄とbank欄はニュース要約を反映（無い項目は数値・水準・移動平均・利回り・COTからの地合いを書き、不明は"要確認"）。bank.summaryはニュース全体を2〜3文に凝縮。bank.banksは各機関(MUFG/三井住友/みずほ/野村/Goldman/OANDA/外為どっとコム等)の見解を1社1文で要約（取得できた範囲のみ、無ければ[]）。各ペアのcotReadは該当通貨のCOTと価格の整合/乖離に言及。retailは要約や一般傾向からの推定（数値は後で実測上書きの場合あり）。
+eventsは「本日(JST)」に予定される主要経済指標・イベントを時刻順に最大6件。各要素は{"time":"HH:MM","name":"指標名(国)","imp":"high|mid|low"}。timeは日本時間のHH:MM（時刻不明はtimeを""にしてnameに記載）。ニュース要約に直近の予定が無ければ既知の定例を推測で埋めず確実なものだけ。該当が無ければ[]。過去日のイベントは含めない。
 重要: 出力はJSONオブジェクトだけ（全体で日本語4500字以内）。前置き・Markdown・コードフェンス・コメントは付けない。文字列中に改行やダブルクォートを入れない。各文は簡潔に1〜2文。スキーマ:
-{"overview":"","strengthRead":"","riskMacro":"","scenario":"","cotReading":"","retail":{"XAUUSD":{"s":59,"l":41,"note":""},"EURUSD":{},"USDJPY":{},"EURJPY":{},"GBPUSD":{},"AUDUSD":{},"USDCAD":{},"GBPJPY":{}},"bank":{"summary":"","banks":[{"name":"","view":""}],"drivers":"","intervention":"","risk":"","rangeUSDJPY":"","rangeEURJPY":""},"pairs":{"XAUUSD":{"bias":"","trend":"","news":"","strategy":"","levels":"","cotRead":"","risk":""},"EURUSD":{},"USDJPY":{},"EURJPY":{},"GBPUSD":{},"AUDUSD":{},"USDCAD":{},"GBPJPY":{}}}`;
+{"overview":"","strengthRead":"","riskMacro":"","scenario":"","cotReading":"","events":[{"time":"","name":"","imp":""}],"retail":{"XAUUSD":{"s":59,"l":41,"note":""},"EURUSD":{},"USDJPY":{},"EURJPY":{},"GBPUSD":{},"AUDUSD":{},"USDCAD":{},"GBPJPY":{}},"bank":{"summary":"","banks":[{"name":"","view":""}],"drivers":"","intervention":"","risk":"","rangeUSDJPY":"","rangeEURJPY":""},"pairs":{"XAUUSD":{"bias":"","trend":"","news":"","strategy":"","levels":"","cotRead":"","risk":""},"EURUSD":{},"USDJPY":{},"EURJPY":{},"GBPUSD":{},"AUDUSD":{},"USDCAD":{},"GBPJPY":{}}}`;
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 180000);
   try {
