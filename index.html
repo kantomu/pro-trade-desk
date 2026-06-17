@@ -676,9 +676,8 @@ function renderToday(){
 }
 function buildBriefShare(){
   var a=(DATA&&DATA.analysis)||{};
-  var date=a.asof||new Date(Date.now()+9*36e5).toISOString().slice(0,10);
   var body=(a.xpost&&a.xpost.trim())?a.xpost.trim():trimForX(a.overview||'');
-  return '【 本日の概況 】'+date+'\n'+body;
+  return '【　本日の概況　】\n'+body;
 }
 function trimForX(t){
   // fallback: drop sentences mentioning fine technicals (MA lines etc.) and clip length
