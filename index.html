@@ -96,6 +96,10 @@ main{padding:12px 0 calc(86px + env(safe-area-inset-bottom))}
 .chead .tag{font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:2px;color:var(--gold);text-transform:uppercase}
 .chead .jp{font-family:'Zen Kaku Gothic New',sans-serif;font-weight:700;font-size:12.5px}
 .chead .r{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mut2)}
+.sharex{margin-left:8px;width:26px;height:26px;border-radius:8px;border:1px solid var(--goldline);color:var(--gold);display:inline-grid;place-items:center;flex:none;background:color-mix(in srgb,var(--gold) 8%,transparent)}
+.sharex svg{width:13px;height:13px;fill:currentColor}
+.sharex:active{transform:scale(.9)}
+.chead .r + .sharex{margin-left:8px}
 .kicker{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.6px;color:var(--mut2);text-transform:uppercase;margin:11px 0 4px}
 p.body{font-size:12.8px}
 .note{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mut2);line-height:1.6}
@@ -637,7 +641,7 @@ function renderToday(){
      '<div class="chips" id="heroEvents"></div>'+
      railHTML()+'</div>';
   var staleNote=a.stale?'<div class="banner" style="margin:0 0 8px">⚠ 本日('+(a.staleAsof||'')+')のAI分析の再生成に失敗。下の文章は前回分の概況です（価格・COT等の数値は最新）。⚙設定→取得メモに原因。</div>':'';
-  H+='<div class="card"><div class="chead"><span class="tag">Brief</span><span class="jp">本日の概況</span>'+(a.asof?'<span class="r">'+esc(a.asof)+'</span>':'')+'</div>'+staleNote+'<p class="body">'+esc(a.overview||'分析未生成。数値は上のティッカーを参照。')+'</p></div>';
+  H+='<div class="card"><div class="chead"><span class="tag">Brief</span><span class="jp">本日の概況</span>'+(a.asof?'<span class="r">'+esc(a.asof)+'</span>':'')+'<button class="sharex" id="shareBrief" aria-label="Xにシェア"><svg viewBox="0 0 24 24"><path d="M18 2h3l-7.5 8.6L22.5 22H16l-5-6.6L5.2 22H2l8-9.2L1.8 2H8.4l4.5 6L18 2z"/></svg></button></div>'+staleNote+'<p class="body">'+esc(a.overview||'分析未生成。数値は上のティッカーを参照。')+'</p></div>';
   H+=focusHTML();
   var p=DATA.prices||{},y=DATA.yields||{};
   function mi(n,o,dec){if(!o)return'';var c=o.chg<0?'down':'up';return '<div class="mi"><span class="n">'+n+'</span><span class="v">'+(o.price!=null?Number(o.price).toFixed(dec):'—')+'</span><span class="c '+c+'">'+(o.chg!=null?(o.chg>0?'+':'')+Number(o.chg).toFixed(2)+'%':'')+'</span></div>';}
@@ -667,6 +671,31 @@ function renderToday(){
   }
   bindOpeners($('#p-today'));
   renderTicker();
+  var sb=$('#shareBrief');
+  if(sb)sb.onclick=function(e){e.stopPropagation();shareBrief();};
+}
+function buildBriefShare(){
+  var a=(DATA&&DATA.analysis)||{};
+  var date=a.asof||new Date(Date.now()+9*36e5).toISOString().slice(0,10);
+  var body=(a.xpost&&a.xpost.trim())?a.xpost.trim():trimForX(a.overview||'');
+  return '【 本日の概況 】'+date+'\n'+body;
+}
+function trimForX(t){
+  // fallback: drop sentences mentioning fine technicals (MA lines etc.) and clip length
+  t=String(t||'').replace(/\s+/g,'');
+  var sentences=t.split(/(?<=。)/).filter(Boolean);
+  var drop=/(移動平均|50日|200日|日線|MA\d|ピボット|フィボ|RSI|MACD|ボリンジャー)/;
+  var kept=sentences.filter(function(s){return !drop.test(s);});
+  var out=(kept.length?kept:sentences).join('');
+  if(out.length>240)out=out.slice(0,237)+'…';
+  return out;
+}
+function shareBrief(){
+  var text=buildBriefShare();
+  var url='https://twitter.com/intent/tweet?text='+encodeURIComponent(text);
+  // Prefer native share sheet on mobile when available; else open X intent
+  if(navigator.share){navigator.share({text:text}).catch(function(){window.open(url,'_blank','noopener');});}
+  else window.open(url,'_blank','noopener');
 }
 function pairCard(p,st,cv){
   var cf=PC[p],pr=(DATA.prices&&DATA.prices[cf.q])||{};
