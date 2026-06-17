@@ -544,7 +544,7 @@ function countUp(el,target,dec){
 function tkHTML(k,obj,dec){
   if(!obj)return'';
   var c=obj.chg>0?'up':obj.chg<0?'down':'mid';
-  var dv=obj.derived?'算出':(obj.chg==null?'':(obj.chg>0?'+':'')+Number(obj.chg).toFixed(2)+'%');
+  var dv=(obj.chg!=null)?((obj.chg>0?'+':'')+Number(obj.chg).toFixed(2)+'%'):(obj.derived?'算出':'');
   return '<div class="tk"><div class="k">'+k+'</div><div class="p" data-cu="'+(obj.price!=null?obj.price:'')+'" data-dec="'+dec+'">'+(obj.price!=null?Number(obj.price).toFixed(dec):'—')+'</div><div class="d '+c+'">'+dv+'</div></div>';
 }
 function tickerHTML(){
@@ -849,7 +849,12 @@ function widgetURL(){var on=WB_DEF.filter(function(d){return WB[d[0]];}).map(fun
 function openSet(){
   var f=DATA&&DATA.freshness||{};
   var order=[['prices','価格'],['spark','30日終値'],['yields','米金利'],['cot','COT'],['retail','個人(実測)'],['news','ニュース'],['analysis','AI分析']];
-  var fresh=order.map(function(o){return '<div class="freshrow"><span>'+o[1]+'</span><b>'+relTime(f[o[0]])+'</b></div>';}).join('');
+  var fresh=order.map(function(o){
+    var val;
+    if(o[0]==='cot'){var cd=DATA.cot&&DATA.cot.GOLD&&DATA.cot.GOLD.date;val=cd?(cd+'（週次）'):relTime(f.cot);}
+    else val=relTime(f[o[0]]);
+    return '<div class="freshrow"><span>'+o[1]+'</span><b>'+val+'</b></div>';
+  }).join('');
   var errs=(DATA&&DATA.errors&&DATA.errors.length)?'<div class="kicker">取得メモ</div><p class="note">'+esc(DATA.errors.join(' / '))+'</p>':'';
   var dark=document.body.getAttribute('data-theme')!=='light';
   var B='<div class="setrow"><div><div class="t">ダークテーマ</div><div class="d">ブリオン（暗）／ペーパー（明）</div></div>'+
