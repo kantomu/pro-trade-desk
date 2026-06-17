@@ -49,8 +49,14 @@ async function getPrices(errors) {
     } catch (e) { errors.push("FMP " + s + ": " + e.message); }
     await sleep(300); // spacing to respect free-tier limits
   }
-  if (prices.EURUSD && prices.USDJPY) prices.EURJPY = { price: +(prices.EURUSD.price * prices.USDJPY.price).toFixed(2), derived: true };
-  if (prices.GBPUSD && prices.USDJPY) prices.GBPJPY = { price: +(prices.GBPUSD.price * prices.USDJPY.price).toFixed(2), derived: true };
+  if (prices.EURUSD && prices.USDJPY) {
+    const chg = (typeof prices.EURUSD.chg === "number" && typeof prices.USDJPY.chg === "number") ? +(prices.EURUSD.chg + prices.USDJPY.chg).toFixed(2) : null;
+    prices.EURJPY = { price: +(prices.EURUSD.price * prices.USDJPY.price).toFixed(2), chg, derived: true };
+  }
+  if (prices.GBPUSD && prices.USDJPY) {
+    const chg = (typeof prices.GBPUSD.chg === "number" && typeof prices.USDJPY.chg === "number") ? +(prices.GBPUSD.chg + prices.USDJPY.chg).toFixed(2) : null;
+    prices.GBPJPY = { price: +(prices.GBPUSD.price * prices.USDJPY.price).toFixed(2), chg, derived: true };
+  }
   return prices;
 }
 /* ---------- FMP: 30-day closes for sparklines (isolated; absence is fine) ---------- */
