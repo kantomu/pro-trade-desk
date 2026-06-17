@@ -430,7 +430,24 @@ function pairSession(p,date){var list=PC[p].ses||[],active=false,activeName='',b
   return {active:active,activeName:activeName,next:best};}
 function fmtDur(ms){if(ms==null)return'—';if(ms<0)ms=0;var h=Math.floor(ms/36e5),m=Math.floor(ms%36e5/6e4);return h>0?(h+'h'+pad(m)+'m'):(m+'m');}
 function sesBadgeTxt(p,now){var st=pairSession(p,now);return st.active?((st.activeName==='NY'?'':'⚡')+st.activeName):(st.next?(st.next.name+' '+fmtDur(st.next.ms)):'—');}
-function nextWed1230(){var n=new Date(),day=n.getUTCDay(),add=(3-day+7)%7;var t=new Date(Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate()+add,12,30,0));if(t.getTime()<n.getTime())t=new Date(t.getTime()+7*864e5);return t.getTime();}
+function eventVetoMinutes(){
+  var a=(DATA&&DATA.analysis)||{},evs=a.events||[];
+  if(!evs.length)return null;
+  var now=new Date();
+  // current JST wall-clock minutes
+  var jnow=new Date(now.getTime()+9*36e5);
+  var nowMin=jnow.getUTCHours()*60+jnow.getUTCMinutes();
+  var best=null;
+  evs.forEach(function(e){
+    if(e.imp!=='high')return;
+    var m=String(e.time||'').match(/(\d{1,2}):(\d{2})/);
+    if(!m)return;
+    var em=(+m[1])*60+(+m[2]);
+    var diff=em-nowMin;
+    if(diff>=0&&(best==null||diff<best))best=diff;
+  });
+  return best;
+}
 
 /* ================= confluence math (unchanged logic) ================= */
 function strengthMap(){var m={};((DATA&&DATA.strength)||[]).forEach(function(x){m[x.ccy]=x.score;});return m;}
@@ -580,7 +597,7 @@ function renderToday(){
   H+='<div class="card hero">'+
      '<div class="date">'+dstr+' ・ 日本 <span id="jst2" class="mono">--:--</span> ・ UTC <span id="utc2" class="mono">--:--</span></div>'+
      '<div class="cdrow"><div class="big mono" id="heroCd">--:--:--</div><div class="lab" id="heroLab">—</div></div>'+
-     '<div class="chips"><span class="chip">米CPIまで <b class="mono" id="cpiCd">--</b> <span style="opacity:.7">水21:30 JST</span></span></div>'+
+     '<div class="chips" id="heroEvents"></div>'+
      railHTML()+'</div>';
   H+=tickerHTML();
   var staleNote=a.stale?'<div class="banner" style="margin:0 0 8px">⚠ 本日('+(a.staleAsof||'')+')のAI分析の再生成に失敗。下の文章は前回分の概況です（価格・COT等の数値は最新）。⚙設定→取得メモに原因。</div>':'';
@@ -593,10 +610,25 @@ function renderToday(){
      '<div class="mi"><span class="n">US 2Y</span><span class="v">'+(y.y2!=null?y.y2+'%':'—')+'</span></div>'+
      '<div class="mi"><span class="n">US 10Y</span><span class="v">'+(y.y10!=null?y.y10+'%':'—')+'</span></div></div>'+
      '<p class="body">'+esc(a.riskMacro||'')+'</p></div>';
-  H+='<div class="card"><div class="chead"><span class="tag">Scenario</span><span class="jp">シナリオ</span></div>'+
-     '<div class="week"><div class="ev"><b>水</b> 米CPI★</div><div class="ev"><b>木</b> ECB・PPI</div><div class="ev"><b>金</b> 独CPI・英GDP</div></div>'+
-     '<p class="body">'+esc(a.scenario||'')+'</p></div>';
+  var evs=(a.events&&a.events.length)?a.events:[];
+  var evHTML=evs.length?('<div class="week">'+evs.map(function(e){
+    var imp=(e.imp==='high')?'★':(e.imp==='mid')?'•':'';
+    return '<div class="ev"><b>'+esc(e.time||e.day||'')+'</b> '+esc(e.name||'')+imp+'</div>';
+  }).join('')+'</div>'):'';
+  if(evs.length||a.scenario){
+    H+='<div class="card"><div class="chead"><span class="tag">Scenario</span><span class="jp">シナリオ・予定</span>'+(a.asof?'<span class="r">'+esc(a.asof)+'</span>':'')+'</div>'+
+       evHTML+'<p class="body">'+esc(a.scenario||'')+'</p></div>';
+  }
   $('#p-today').innerHTML=H;
+  var he=$('#heroEvents');
+  if(he){
+    var ev2=(a.events&&a.events.length)?a.events.slice(0,3):[];
+    if(ev2.length)he.innerHTML=ev2.map(function(e){
+      var imp=(e.imp==='high')?'★':'';
+      return '<span class="chip"><b>'+esc(e.time||e.day||'')+'</b> '+esc(e.name||'')+imp+'</span>';
+    }).join('');
+    else he.innerHTML='<span class="chip" style="opacity:.7">本日の主要指標はAI分析の更新で表示されます</span>';
+  }
   bindOpeners($('#p-today'));
   if(!RM)$$('.tk .p[data-cu]',$('#p-today')).forEach(function(el){var v=parseFloat(el.getAttribute('data-cu'));var d=+el.getAttribute('data-dec');if(isFinite(v))countUp(el,v,d);});
 }
@@ -740,7 +772,7 @@ function scRender(){
   var pct=Math.round(sup/tot*100),flags=[],cap=1,veto=false;
   var ps=pairSession(SC.cur,new Date()),inSes=ps.active;
   flags.push({t:inSes?'優位セッション中('+ps.activeName+')':'セッション優位外',ok:inSes});if(!inSes)cap=2;
-  var cm=(nextWed1230()-Date.now())/6e4;if(cm>0&&cm<30){flags.push({t:'CPI直前=回避',ok:false});veto=true;}
+  var evMin=eventVetoMinutes();if(evMin!=null&&evMin<30){flags.push({t:'重要指標'+evMin+'分前=回避',ok:false});veto=true;}
   if(man.rr)flags.push({t:'RR≥2',ok:true});else{flags.push({t:'RR<2/未確認',ok:false});cap=Math.max(cap,2);}
   var cotG=DATA.cot&&DATA.cot.GOLD,gpr=DATA.prices&&DATA.prices.GCUSD;
   if(SC.cur==='XAUUSD'&&dir===1&&cotG&&cotG.net>120000&&gpr&&gpr.chg<0){flags.push({t:'COTロング過熱',ok:false});cap=Math.max(cap,2);}
@@ -910,9 +942,6 @@ function tick(){
     else if(nextK!=null){var s2=Math.floor(nextMs/1000);hc.textContent=pad(Math.floor(s2/3600))+':'+pad(Math.floor(s2%3600/60))+':'+pad(s2%60);hc.classList.remove('open');hl.textContent='次：'+SESS[nextK].jp+'開場（取引時間中）';}
     else{hc.textContent='OPEN';hc.classList.add('open');hl.textContent='主要市場 取引時間中';}
   }
-  // CPI chip
-  var cpi=nextWed1230()-now.getTime(),ce=$('#cpiCd');
-  if(ce){if(cpi<=0)ce.textContent='発表時間帯';else{var d=Math.floor(cpi/864e5),hh=Math.floor(cpi%864e5/36e5),mm=Math.floor(cpi%36e5/6e4);ce.textContent=d+'日'+pad(hh)+':'+pad(mm);}}
   // rail playhead (JST axis) + channel live state
   var ph=$('#ph');
   if(ph){
