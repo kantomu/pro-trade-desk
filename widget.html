@@ -167,7 +167,7 @@ function blkSession(){
 function tile(k,sym,dec){
   var obj=(DATA.prices||{})[sym];if(!obj)return'';
   var c=obj.chg>0?'up':obj.chg<0?'down':'mid';
-  var dv=obj.derived?'算出':(obj.chg==null?'':(obj.chg>0?'+':'')+Number(obj.chg).toFixed(2)+'%');
+  var dv=(obj.chg!=null)?((obj.chg>0?'+':'')+Number(obj.chg).toFixed(2)+'%'):(obj.derived?'算出':'');
   return '<div class="tile"><div class="k">'+k+'</div><div class="row"><span class="p">'+(obj.price!=null?Number(obj.price).toFixed(dec):'—')+'</span><span class="d '+c+'">'+dv+'</span></div><canvas data-sp="'+sym+'"></canvas></div>';
 }
 function blkTop(){
