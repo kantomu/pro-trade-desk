@@ -130,6 +130,29 @@ p.body{font-size:12.8px}
 .rail .legend{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:8.5px;color:var(--mut2);margin-top:5px}
 
 /* ticker */
+/* ticker marquee under wordmark */
+.tickerbar{position:sticky;top:calc(50px + env(safe-area-inset-top));z-index:39;
+  background:color-mix(in srgb,var(--ink) 90%, transparent);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--seam);overflow:hidden;white-space:nowrap;
+  margin:0 -14px;padding:5px 0;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 22px,#000 calc(100% - 22px),transparent);
+          mask-image:linear-gradient(90deg,transparent,#000 22px,#000 calc(100% - 22px),transparent)}
+.tickerbar .track{display:inline-flex;gap:7px;padding-left:7px;will-change:transform;
+  animation:marq 60s linear infinite}
+.tickerbar:active .track,.tickerbar:hover .track{animation-play-state:paused}
+@keyframes marq{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.tchip{display:inline-flex;align-items:center;gap:6px;flex:none;
+  background:linear-gradient(180deg,var(--felt),var(--moss));border:1px solid var(--seam);
+  border-radius:9px;padding:3px 9px;font-family:'JetBrains Mono',monospace;line-height:1.1}
+.tchip .k{font-size:8.5px;color:var(--mut2);letter-spacing:.5px}
+.tchip .p{font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
+.tchip .d{font-size:9px;font-weight:700}
+.tchip .d::before{margin-right:1px;font-size:7px;vertical-align:1px}
+.tchip .d.up::before{content:"▲"}.tchip .d.down::before{content:"▼"}
+@media (prefers-reduced-motion:reduce){
+  .tickerbar{overflow-x:auto}
+  .tickerbar .track{animation:none}
+}
 .rail2{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;padding:2px 2px 4px;margin:0 -2px 11px;
   mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 14px),transparent)}
 .tk{flex:none;scroll-snap-align:start;min-width:96px;background:linear-gradient(180deg,var(--felt),var(--moss));
@@ -348,6 +371,7 @@ footer{margin:20px 2px 6px;color:var(--mut2);font-size:9.5px;line-height:1.8;fon
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19 12c0-.6.5-1.2.4-1.8l1.2-2-2-3.4-2.3.6c-.5-.4-1.4-.8-2-1L13.7 2h-3.4l-.6 2.4c-.6.2-1.5.6-2 1L5.4 4.8l-2 3.4 1.2 2c-.1.6.4 1.2.4 1.8s-.5 1.2-.4 1.8l-1.2 2 2 3.4 2.3-.6c.5.4 1.4.8 2 1l.6 2.4h3.4l.6-2.4c.6-.2 1.5-.6 2-1l2.3.6 2-3.4-1.2-2c.1-.6-.4-1.2-.4-1.8z"/></svg>
     </button>
   </header>
+  <div class="tickerbar" id="tickerbar" aria-label="主要レート"></div>
 
   <main>
     <div id="banner"></div>
@@ -541,17 +565,32 @@ function countUp(el,target,dec){
 }
 
 /* ================= renderers ================= */
-function tkHTML(k,obj,dec){
-  if(!obj)return'';
-  var c=obj.chg>0?'up':obj.chg<0?'down':'mid';
-  var dv=(obj.chg!=null)?((obj.chg>0?'+':'')+Number(obj.chg).toFixed(2)+'%'):(obj.derived?'算出':'');
-  return '<div class="tk"><div class="k">'+k+'</div><div class="p" data-cu="'+(obj.price!=null?obj.price:'')+'" data-dec="'+dec+'">'+(obj.price!=null?Number(obj.price).toFixed(dec):'—')+'</div><div class="d '+c+'">'+dv+'</div></div>';
+function tchip(k,price,dec,chg,extra){
+  if(price==null&&!extra)return'';
+  var c=chg>0?'up':chg<0?'down':'mid';
+  var dv=extra!=null?extra:((chg!=null)?((chg>0?'+':'')+Number(chg).toFixed(2)+'%'):'');
+  return '<span class="tchip"><span class="k">'+k+'</span><span class="p">'+(price!=null?Number(price).toFixed(dec):'—')+'</span>'+(dv?'<span class="d '+c+'">'+dv+'</span>':'')+'</span>';
 }
-function tickerHTML(){
+function tickerChips(){
   var p=DATA.prices||{},y=DATA.yields||{};
-  var h=tkHTML('USDJPY',p.USDJPY,2)+tkHTML('EURUSD',p.EURUSD,4)+tkHTML('GBPUSD',p.GBPUSD,4)+tkHTML('AUDUSD',p.AUDUSD,4)+tkHTML('USDCAD',p.USDCAD,4)+tkHTML('EURJPY',p.EURJPY,2)+tkHTML('GBPJPY',p.GBPJPY,2)+tkHTML('GOLD',p.GCUSD,1)+tkHTML('S&amp;P500',p.GSPC,0);
-  if(y.y10!=null)h+='<div class="tk"><div class="k">US10Y</div><div class="p">'+y.y10+'%</div><div class="d mid">'+(y.y2!=null?'2Y '+y.y2+'%':'')+'</div></div>';
-  return '<div class="rail2">'+h+'</div>';
+  var h=tchip('USDJPY',p.USDJPY&&p.USDJPY.price,2,p.USDJPY&&p.USDJPY.chg)
+       +tchip('EURUSD',p.EURUSD&&p.EURUSD.price,4,p.EURUSD&&p.EURUSD.chg)
+       +tchip('GBPUSD',p.GBPUSD&&p.GBPUSD.price,4,p.GBPUSD&&p.GBPUSD.chg)
+       +tchip('AUDUSD',p.AUDUSD&&p.AUDUSD.price,4,p.AUDUSD&&p.AUDUSD.chg)
+       +tchip('USDCAD',p.USDCAD&&p.USDCAD.price,4,p.USDCAD&&p.USDCAD.chg)
+       +tchip('EURJPY',p.EURJPY&&p.EURJPY.price,2,p.EURJPY&&p.EURJPY.chg)
+       +tchip('GBPJPY',p.GBPJPY&&p.GBPJPY.price,2,p.GBPJPY&&p.GBPJPY.chg)
+       +tchip('GOLD',p.GCUSD&&p.GCUSD.price,1,p.GCUSD&&p.GCUSD.chg)
+       +tchip('S&amp;P500',p.GSPC&&p.GSPC.price,0,p.GSPC&&p.GSPC.chg);
+  if(y.y10!=null)h+=tchip('US10Y',null,0,null,y.y10+'%');
+  if(y.y2!=null)h+=tchip('US2Y',null,0,null,y.y2+'%');
+  return h;
+}
+function renderTicker(){
+  var bar=$('#tickerbar');if(!bar||!DATA)return;
+  var chips=tickerChips();
+  // duplicate the chip set so the -50% translate loops seamlessly
+  bar.innerHTML='<div class="track">'+chips+chips+'</div>';
 }
 function railHTML(){
   var order=['SYD','TOK','LDN','NY'],now=new Date();
@@ -599,7 +638,6 @@ function renderToday(){
      '<div class="cdrow"><div class="big mono" id="heroCd">--:--:--</div><div class="lab" id="heroLab">—</div></div>'+
      '<div class="chips" id="heroEvents"></div>'+
      railHTML()+'</div>';
-  H+=tickerHTML();
   var staleNote=a.stale?'<div class="banner" style="margin:0 0 8px">⚠ 本日('+(a.staleAsof||'')+')のAI分析の再生成に失敗。下の文章は前回分の概況です（価格・COT等の数値は最新）。⚙設定→取得メモに原因。</div>':'';
   H+='<div class="card"><div class="chead"><span class="tag">Brief</span><span class="jp">本日の概況</span>'+(a.asof?'<span class="r">'+esc(a.asof)+'</span>':'')+'</div>'+staleNote+'<p class="body">'+esc(a.overview||'分析未生成。数値は上のティッカーを参照。')+'</p></div>';
   H+=focusHTML();
@@ -630,7 +668,6 @@ function renderToday(){
     else he.innerHTML='<span class="chip" style="opacity:.7">本日の主要指標はAI分析の更新で表示されます</span>';
   }
   bindOpeners($('#p-today'));
-  if(!RM)$$('.tk .p[data-cu]',$('#p-today')).forEach(function(el){var v=parseFloat(el.getAttribute('data-cu'));var d=+el.getAttribute('data-dec');if(isFinite(v))countUp(el,v,d);});
 }
 function pairCard(p,st,cv){
   var cf=PC[p],pr=(DATA.prices&&DATA.prices[cf.q])||{};
@@ -972,6 +1009,7 @@ function skel(){
 }
 function renderAll(){
   if(!DATA)return;
+  renderTicker();
   renderToday();renderPairs();renderFlow();renderNews();renderScore();
   var up=new Date(DATA.updated);
   var hrs=(Date.now()-up.getTime())/36e5;
